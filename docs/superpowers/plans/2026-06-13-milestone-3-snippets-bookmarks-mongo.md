@@ -70,12 +70,12 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 6: Frontend — TagInput + snippets page with highlighting
 
-- [ ] TDD `TagInput` (chips, Enter adds, × removes, v-model `string[]`) — failing test
+- [x] TDD `TagInput` (chips, Enter adds, × removes, v-model `string[]`) — failing test
   first. TDD `SnippetCard` (title, language badge, tags, emits edit/delete).
-- [ ] Snippets page `/app/snippets`: vue-query list with language/tag filters, create/edit
+- [x] Snippets page `/app/snippets`: vue-query list with language/tag filters, create/edit
   form (code textarea, language, tags, optional project), delete; `CodeBlock` with
   highlight.js (common bundle); nav links in `AppHeader`.
-- [ ] Vitest green; build green. Commit.
+- [x] Vitest green; build green. Commit.
 
 ### Task 7: Frontend — bookmarks page
 

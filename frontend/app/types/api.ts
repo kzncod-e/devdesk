@@ -39,3 +39,24 @@ export interface ProjectSummary {
   snippets: number
   bookmarks: number
 }
+
+export interface Snippet {
+  id: string
+  project_id: number | null
+  title: string
+  language: string
+  code: string
+  tags: string[]
+  notes: string
+}
+
+export interface Bookmark {
+  id: string
+  project_id: number | null
+  url: string
+  title: string
+  description: string
+  tags: string[]
+  favicon: string
+  fetched_meta: Record<string, string>
+}
