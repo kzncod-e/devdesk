@@ -1,0 +1,25 @@
+from datetime import date, datetime
+
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.postgres import Base
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="todo")  # todo|in_progress|done
+    priority: Mapped[str] = mapped_column(String(10), default="medium")  # low|medium|high
+    position: Mapped[float] = mapped_column(Float)
+    due_date: Mapped[date | None] = mapped_column(Date, default=None)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

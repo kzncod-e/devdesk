@@ -32,13 +32,13 @@ Docker Compose.
 
 ### Task 2: Task ORM model + TaskRepository (integration-tested)
 
-- [ ] Failing integration tests (testcontainers): create with defaults (`todo`, position),
+- [x] Failing integration tests (testcontainers): create with defaults (`todo`, position),
   list for project ordered by position, `get_with_owner` joins projects for owner scoping,
   `max_position`, `count_by_status`, update, delete.
-- [ ] Implement `app/models/task.py` (id, project_id FK, title, description, status,
+- [x] Implement `app/models/task.py` (id, project_id FK, title, description, status,
   priority, position float, due_date date|null, created_at, updated_at) and
   `app/repositories/task_repo.py`.
-- [ ] Tests green. Commit.
+- [x] Tests green. Commit.
 
 ### Task 3: TaskService + ProjectService.summary (unit-tested with fakes)
 

@@ -10,6 +10,7 @@ from app.db.postgres import Base, engine
 from app.routers import auth, projects
 import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
+import app.models.task  # noqa: F401
 
 
 @asynccontextmanager
