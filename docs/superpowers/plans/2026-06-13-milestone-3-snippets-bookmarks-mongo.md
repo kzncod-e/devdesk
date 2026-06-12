@@ -42,11 +42,11 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 3: HTML metadata parser (pure, TDD)
 
-- [ ] Failing unit tests: extracts `<title>`, meta description (name= and property=og:),
+- [x] Failing unit tests: extracts `<title>`, meta description (name= and property=og:),
   favicon link (absolute via base URL), falls back to `/favicon.ico` and empty strings;
   survives malformed HTML.
-- [ ] Implement `app/core/htmlmeta.py` with stdlib `HTMLParser`.
-- [ ] Tests green. Commit.
+- [x] Implement `app/core/htmlmeta.py` with stdlib `HTMLParser`.
+- [x] Tests green. Commit.
 
 ### Task 4: Services — snippets, bookmarks, detach-on-delete, real summary counts
 
