@@ -24,11 +24,11 @@ Docker Compose.
 
 ### Task 1: Refresh-token httpOnly cookie (backend)
 
-- [ ] Failing API tests: login sets an httpOnly `refresh_token` cookie; `/auth/refresh` works
+- [x] Failing API tests: login sets an httpOnly `refresh_token` cookie; `/auth/refresh` works
   with the cookie alone (no body); cookie is rotated on refresh.
-- [ ] Implement: `auth` router sets the cookie on login/refresh (httponly, samesite=lax,
+- [x] Implement: `auth` router sets the cookie on login/refresh (httponly, samesite=lax,
   max_age from settings, path=/api/v1/auth); refresh falls back to cookie when body omitted.
-- [ ] Full backend suite green. Commit.
+- [x] Full backend suite green. Commit.
 
 ### Task 2: Task ORM model + TaskRepository (integration-tested)
 
