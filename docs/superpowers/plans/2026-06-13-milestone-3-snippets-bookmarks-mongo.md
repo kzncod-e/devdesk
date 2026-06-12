@@ -32,13 +32,13 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 2: Snippet + Bookmark repositories (integration-tested vs real Mongo)
 
-- [ ] Failing integration tests (testcontainers mongo): snippet create/get/update/delete
+- [x] Failing integration tests (testcontainers mongo): snippet create/get/update/delete
   owner-scoped; list with project/tag/language filters + pagination; bookmark create with
   empty `fetched_meta`, `set_metadata`, list with filters; `detach_project` nulls
   `project_id` across owners' docs; `count_for_project`.
-- [ ] Implement `app/repositories/snippet_repo.py` and `bookmark_repo.py` (docs returned as
+- [x] Implement `app/repositories/snippet_repo.py` and `bookmark_repo.py` (docs returned as
   JSON-friendly dicts, `_id` → `id: str`).
-- [ ] Tests green. Commit.
+- [x] Tests green. Commit.
 
 ### Task 3: HTML metadata parser (pure, TDD)
 
