@@ -16,6 +16,7 @@ from app.repositories.user_repo import UserRepository
 from app.services.auth_service import AuthService
 from app.services.bookmark_service import BookmarkService, FetchHtml, default_fetch_html
 from app.services.project_service import ProjectService
+from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
 from app.services.task_service import TaskService
 
@@ -65,6 +66,15 @@ def get_bookmark_service(
 ) -> BookmarkService:
     return BookmarkService(BookmarkRepository(mongo_db), ProjectRepository(session),
                            fetch_html=fetch_html)
+
+
+def get_search_service(session: Session, mongo_db: MongoDb) -> SearchService:
+    return SearchService(
+        ProjectRepository(session),
+        TaskRepository(session),
+        SnippetRepository(mongo_db),
+        BookmarkRepository(mongo_db),
+    )
 
 
 async def get_current_user(

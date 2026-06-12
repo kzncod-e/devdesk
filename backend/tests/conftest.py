@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from testcontainers.mongodb import MongoDbContainer
 
 from app.api.deps import get_html_fetcher
-from app.db.mongo import get_mongo_db
+from app.db.mongo import ensure_mongo_indexes, get_mongo_db
 from app.db.postgres import Base, get_session
 from app.main import create_app
 
@@ -40,6 +40,8 @@ async def client(mongo_container_url):
 
     mongo_client = AsyncMongoClient(mongo_container_url)
     mongo_db = mongo_client[f"test_{uuid.uuid4().hex[:12]}"]
+    # ASGITransport skips lifespan, so create the $text indexes here
+    await ensure_mongo_indexes(mongo_db)
 
     app = create_app()
 

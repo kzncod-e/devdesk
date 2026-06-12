@@ -8,7 +8,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.db.mongo import ensure_mongo_indexes, get_client
 from app.db.postgres import Base, engine
-from app.routers import auth, bookmarks, projects, snippets, tasks
+from app.routers import auth, bookmarks, projects, search, snippets, tasks
 import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.task  # noqa: F401
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(snippets.router)
     app.include_router(bookmarks.router)
+    app.include_router(search.router)
     return app
 
 
