@@ -51,12 +51,12 @@ Docker Compose.
 
 ### Task 4: Task schemas + routers + summary endpoint (API-tested)
 
-- [ ] Failing API tests: nested `GET/POST /projects/{id}/tasks`, `PATCH /tasks/{id}` (status
+- [x] Failing API tests: nested `GET/POST /projects/{id}/tasks`, `PATCH /tasks/{id}` (status
   + position moves), `DELETE /tasks/{id}`, 404 on other users' projects/tasks, 401 without
   auth, validation 422s, `GET /projects/{id}/summary` counts.
-- [ ] Implement `app/schemas/task.py`, `app/routers/tasks.py`, summary route in projects
+- [x] Implement `app/schemas/task.py`, `app/routers/tasks.py`, summary route in projects
   router, DI providers; mount router.
-- [ ] Full suite green; ruff clean. Commit.
+- [x] Full suite green; ruff clean. Commit.
 
 ### Task 5: Nuxt scaffold + Tailwind + vue-query + Vitest (infra)
 

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_current_user, get_project_service
 from app.schemas.project import ProjectIn, ProjectOut, ProjectPatch
+from app.schemas.task import ProjectSummaryOut
 from app.services.project_service import ProjectService
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -28,6 +29,11 @@ async def list_projects(user: CurrentUser, svc: Service,
 @router.get("/{project_id}", response_model=ProjectOut)
 async def get_project(project_id: int, user: CurrentUser, svc: Service):
     return await svc.get(project_id, user.id)
+
+
+@router.get("/{project_id}/summary", response_model=ProjectSummaryOut)
+async def project_summary(project_id: int, user: CurrentUser, svc: Service):
+    return await svc.summary(project_id, user.id)
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)

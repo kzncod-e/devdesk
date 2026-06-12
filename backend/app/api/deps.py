@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.postgres import get_session
 from app.repositories.project_repo import ProjectRepository
+from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
 from app.services.auth_service import AuthService
 from app.services.project_service import ProjectService
+from app.services.task_service import TaskService
 
 bearer = HTTPBearer(auto_error=True)
 
@@ -29,7 +31,13 @@ def get_auth_service(
 def get_project_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ProjectService:
-    return ProjectService(ProjectRepository(session))
+    return ProjectService(ProjectRepository(session), task_repo=TaskRepository(session))
+
+
+def get_task_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> TaskService:
+    return TaskService(TaskRepository(session), ProjectRepository(session))
 
 
 async def get_current_user(
