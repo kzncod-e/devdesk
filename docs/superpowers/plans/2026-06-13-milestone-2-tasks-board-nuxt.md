@@ -60,11 +60,11 @@ Docker Compose.
 
 ### Task 5: Nuxt scaffold + Tailwind + vue-query + Vitest (infra)
 
-- [ ] Scaffold `frontend/` (Nuxt 4, TS): package.json, nuxt.config.ts with hybrid route rules
+- [x] Scaffold `frontend/` (Nuxt 4, TS): package.json, nuxt.config.ts with hybrid route rules
   (`/`, `/login`, `/register` prerendered; `/app/**` ssr:false; `/api` dev-proxied to
   :8000), Tailwind v4 via vite plugin, vue-query plugin, base layout.
-- [ ] Vitest configured (happy-dom); a trivial component test proves the harness runs.
-- [ ] `npm run build` succeeds. Commit.
+- [x] Vitest configured (happy-dom); a trivial component test proves the harness runs.
+- [x] `npm run build` succeeds. Commit.
 
 ### Task 6: Position util + auth composables + auth pages
 
