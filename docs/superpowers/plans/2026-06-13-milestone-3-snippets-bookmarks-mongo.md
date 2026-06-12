@@ -79,12 +79,12 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 7: Frontend — bookmarks page
 
-- [ ] TDD `BookmarkCard` (favicon, linked title, description, tags, emits edit/delete) —
+- [x] TDD `BookmarkCard` (favicon, linked title, description, tags, emits edit/delete) —
   failing test first.
-- [ ] Bookmarks page `/app/bookmarks`: list with tag/project filters, create by URL
+- [x] Bookmarks page `/app/bookmarks`: list with tag/project filters, create by URL
   (+tags/project), edit tags/title, delete; metadata appears after background fetch
   (refetch button / query invalidation).
-- [ ] Vitest green; build green. Commit.
+- [x] Vitest green; build green. Commit.
 
 ### Task 8: Compose smoke E2E
 
