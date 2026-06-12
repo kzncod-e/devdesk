@@ -88,9 +88,9 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 8: Compose smoke E2E
 
-- [ ] `docker compose up -d --build`; through the Nuxt proxy: register/login, create
+- [x] `docker compose up -d --build`; through the Nuxt proxy: register/login, create
   project, create snippet (tagged, project-linked), filter by tag and language, create
   bookmark pointing at `http://api:8000/docs` (no egress needed), verify background
   metadata fetch populated the title, verify summary counts, delete project and verify
   detach left the snippet with `project_id: null`; teardown.
-- [ ] Commit any fixes; plan checked off.
+- [x] Commit any fixes; plan checked off.
