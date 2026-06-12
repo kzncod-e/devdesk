@@ -42,19 +42,45 @@ class FakeTaskCounts:
         return self._counts
 
 
+class FakeDocRepo:
+    def __init__(self, count=0):
+        self._count = count
+        self.detached = []
+
+    async def count_for_project(self, project_id):
+        return self._count
+
+    async def detach_project(self, project_id):
+        self.detached.append(project_id)
+
+
 @pytest.mark.asyncio
-async def test_summary_counts_tasks_by_status():
+async def test_summary_counts_tasks_snippets_and_bookmarks():
     svc = ProjectService(FakeProjectRepo(),
-                         task_repo=FakeTaskCounts({"todo": 2, "done": 1}))
+                         task_repo=FakeTaskCounts({"todo": 2, "done": 1}),
+                         snippet_repo=FakeDocRepo(count=4),
+                         bookmark_repo=FakeDocRepo(count=2))
     p = await svc.create(owner_id=1, name="Mine")
     summary = await svc.summary(p.id, owner_id=1)
     assert summary == {
         "tasks": {"todo": 2, "in_progress": 0, "done": 1, "total": 3},
-        "snippets": 0,
-        "bookmarks": 0,
+        "snippets": 4,
+        "bookmarks": 2,
     }
     with pytest.raises(NotFoundError):
         await svc.summary(p.id, owner_id=2)
+
+
+@pytest.mark.asyncio
+async def test_delete_detaches_mongo_docs():
+    snippets = FakeDocRepo()
+    bookmarks = FakeDocRepo()
+    svc = ProjectService(FakeProjectRepo(), snippet_repo=snippets,
+                         bookmark_repo=bookmarks)
+    p = await svc.create(owner_id=1, name="Mine")
+    await svc.delete(p.id, owner_id=1)
+    assert snippets.detached == [p.id]
+    assert bookmarks.detached == [p.id]
 
 
 @pytest.mark.asyncio

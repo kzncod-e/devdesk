@@ -50,13 +50,13 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 4: Services — snippets, bookmarks, detach-on-delete, real summary counts
 
-- [ ] Failing unit tests (fakes): create validates optional `project_id` against owned
+- [x] Failing unit tests (fakes): create validates optional `project_id` against owned
   projects (cross-DB check, NotFound otherwise); get/update/delete owner-scoped;
   `BookmarkService.fetch_and_store_meta` fetches HTML via injected fetcher and stores
   parsed meta (fetch errors swallowed, doc untouched); `ProjectService.delete` detaches
   snippets+bookmarks; `summary` includes real snippet/bookmark counts.
-- [ ] Implement `SnippetService`, `BookmarkService`; extend `ProjectService`.
-- [ ] Unit suite green. Commit.
+- [x] Implement `SnippetService`, `BookmarkService`; extend `ProjectService`.
+- [x] Unit suite green. Commit.
 
 ### Task 5: Schemas + routers + API tests (BackgroundTasks fetch)
 

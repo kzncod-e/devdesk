@@ -2,9 +2,11 @@ from app.core.errors import NotFoundError
 
 
 class ProjectService:
-    def __init__(self, repo, task_repo=None) -> None:
+    def __init__(self, repo, task_repo=None, snippet_repo=None, bookmark_repo=None) -> None:
         self.repo = repo
         self.task_repo = task_repo
+        self.snippet_repo = snippet_repo
+        self.bookmark_repo = bookmark_repo
 
     async def create(self, *, owner_id: int, name: str, description: str = "",
                      color: str = "#6366f1"):
@@ -27,6 +29,12 @@ class ProjectService:
     async def delete(self, project_id: int, owner_id: int) -> None:
         project = await self.get(project_id, owner_id)
         await self.repo.delete(project)
+        # detach (not delete) associated Mongo docs so general-purpose value
+        # isn't lost — spec §2 decision
+        if self.snippet_repo is not None:
+            await self.snippet_repo.detach_project(project_id)
+        if self.bookmark_repo is not None:
+            await self.bookmark_repo.detach_project(project_id)
 
     async def summary(self, project_id: int, owner_id: int) -> dict:
         await self.get(project_id, owner_id)
@@ -37,5 +45,8 @@ class ProjectService:
             "done": counts.get("done", 0),
         }
         tasks["total"] = sum(tasks.values())
-        # snippets and bookmarks land in Milestone 3 (MongoDB)
-        return {"tasks": tasks, "snippets": 0, "bookmarks": 0}
+        snippets = (await self.snippet_repo.count_for_project(project_id)
+                    if self.snippet_repo is not None else 0)
+        bookmarks = (await self.bookmark_repo.count_for_project(project_id)
+                     if self.bookmark_repo is not None else 0)
+        return {"tasks": tasks, "snippets": snippets, "bookmarks": bookmarks}
