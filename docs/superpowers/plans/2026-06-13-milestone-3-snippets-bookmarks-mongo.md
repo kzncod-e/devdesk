@@ -23,12 +23,12 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 1: Mongo wiring (settings + client + DI seam)
 
-- [ ] Failing unit test: `Settings` reads `MONGO_URL` and `MONGO_DB_NAME` from env with
+- [x] Failing unit test: `Settings` reads `MONGO_URL` and `MONGO_DB_NAME` from env with
   sane defaults.
-- [ ] Implement settings fields, `app/db/mongo.py` (lazy global `AsyncMongoClient`,
+- [x] Implement settings fields, `app/db/mongo.py` (lazy global `AsyncMongoClient`,
   `get_mongo_db` dependency), add `pymongo` to deps; compose `api` service gets
   `MONGO_URL=mongodb://mongo:27017`.
-- [ ] Unit suite green. Commit.
+- [x] Unit suite green. Commit.
 
 ### Task 2: Snippet + Bookmark repositories (integration-tested vs real Mongo)
 

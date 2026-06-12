@@ -22,6 +22,7 @@ services:
     build: ./backend
     environment:
       DATABASE_URL: postgresql+asyncpg://devdesk:devdesk@postgres:5432/devdesk
+      MONGO_URL: mongodb://mongo:27017
       JWT_SECRET: dev-only-secret-change-me
     ports:
       - "8000:8000"
