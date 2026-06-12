@@ -89,6 +89,40 @@ async def test_bookmark_create_set_metadata_and_filters(db):
 
 
 @pytest.mark.asyncio
+async def test_text_search_owner_scoped(db):
+    from app.db.mongo import ensure_mongo_indexes
+
+    await ensure_mongo_indexes(db)
+    snippets = SnippetRepository(db)
+    bookmarks = BookmarkRepository(db)
+
+    s1 = await snippets.create(owner_id=1, title="Nginx reverse proxy", language="nginx",
+                               code="server {}", tags=["infra"], notes="", project_id=None)
+    await snippets.create(owner_id=1, title="Sorting helper", language="py",
+                          code="def sort(): ...", tags=["util"], notes="", project_id=None)
+    await snippets.create(owner_id=2, title="Nginx for bob", language="nginx",
+                          code="x", tags=[], notes="", project_id=None)
+
+    hits = await snippets.search(owner_id=1, q="nginx", limit=10)
+    assert [h["id"] for h in hits] == [s1["id"]]
+    # tags are part of the text index
+    assert [h["id"] for h in await snippets.search(owner_id=1, q="infra", limit=10)] == [s1["id"]]
+    assert await snippets.search(owner_id=1, q="kubernetes", limit=10) == []
+
+    b1 = await bookmarks.create(owner_id=1, url="https://nginx.org", tags=["docs"],
+                                project_id=None)
+    await bookmarks.set_metadata(b1["id"], title="Nginx documentation",
+                                 description="The official docs", favicon="",
+                                 fetched_meta={})
+    await bookmarks.create(owner_id=2, url="https://other.example", tags=["docs"],
+                           project_id=None)
+
+    hits = await bookmarks.search(owner_id=1, q="nginx", limit=10)
+    assert [h["id"] for h in hits] == [b1["id"]]
+    assert await bookmarks.search(owner_id=2, q="nginx", limit=10) == []
+
+
+@pytest.mark.asyncio
 async def test_detach_project_and_count(db):
     snippets = SnippetRepository(db)
     bookmarks = BookmarkRepository(db)

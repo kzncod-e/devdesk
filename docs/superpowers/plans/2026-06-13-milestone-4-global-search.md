@@ -35,12 +35,12 @@ metadata). Stack shippable via Docker Compose.
 
 ### Task 2: Mongo text indexes + search methods
 
-- [ ] Failing integration tests (testcontainers mongo): `SnippetRepository.search` matches
+- [x] Failing integration tests (testcontainers mongo): `SnippetRepository.search` matches
   title/code/notes/tags via `$text`, owner-scoped; `BookmarkRepository.search` matches
   title/description/tags; no-match returns [].
-- [ ] Implement `ensure_mongo_indexes(db)` in `app/db/mongo.py` (text indexes on both
+- [x] Implement `ensure_mongo_indexes(db)` in `app/db/mongo.py` (text indexes on both
   collections), call from app lifespan; `search()` on both repos.
-- [ ] Integration suite green. Commit.
+- [x] Integration suite green. Commit.
 
 ### Task 3: SearchService (unit-tested with fakes)
 

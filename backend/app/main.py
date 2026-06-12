@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
 from app.core.errors import AppError
+from app.db.mongo import ensure_mongo_indexes, get_client
 from app.db.postgres import Base, engine
 from app.routers import auth, bookmarks, projects, snippets, tasks
 import app.models.user  # noqa: F401
@@ -17,6 +18,7 @@ import app.models.task  # noqa: F401
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await ensure_mongo_indexes(get_client()[get_settings().mongo_db_name])
     yield
 
 

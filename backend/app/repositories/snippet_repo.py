@@ -1,3 +1,7 @@
+# annotations deferred: methods named `list` would otherwise shadow the
+# builtin when return annotations are evaluated in the class body
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -78,6 +82,14 @@ class SnippetRepository:
             return False
         res = await self.col.delete_one({"_id": oid, "owner_id": owner_id})
         return res.deleted_count == 1
+
+    async def search(self, *, owner_id: int, q: str, limit: int) -> list[dict]:
+        cursor = (
+            self.col.find({"owner_id": owner_id, "$text": {"$search": q}})
+            .sort([("score", {"$meta": "textScore"})])
+            .limit(limit)
+        )
+        return [_to_api(doc) async for doc in cursor]
 
     async def detach_project(self, project_id: int) -> None:
         await self.col.update_many({"project_id": project_id},
