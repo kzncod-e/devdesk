@@ -42,12 +42,12 @@ Docker Compose.
 
 ### Task 3: TaskService + ProjectService.summary (unit-tested with fakes)
 
-- [ ] Failing unit tests: create appends position (`max+1024`), create/list raise NotFound
+- [x] Failing unit tests: create appends position (`max+1024`), create/list raise NotFound
   for non-owned project; update/delete owner-scoped via task→project join; summary returns
   task counts by status plus zeroed snippets/bookmarks.
-- [ ] Implement `app/services/task_service.py`; extend `ProjectService` with `summary()`
+- [x] Implement `app/services/task_service.py`; extend `ProjectService` with `summary()`
   (task_repo injected).
-- [ ] Tests green. Commit.
+- [x] Tests green. Commit.
 
 ### Task 4: Task schemas + routers + summary endpoint (API-tested)
 

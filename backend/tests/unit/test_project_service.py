@@ -34,6 +34,29 @@ class FakeProjectRepo:
         del self.items[project.id]
 
 
+class FakeTaskCounts:
+    def __init__(self, counts):
+        self._counts = counts
+
+    async def count_by_status(self, project_id):
+        return self._counts
+
+
+@pytest.mark.asyncio
+async def test_summary_counts_tasks_by_status():
+    svc = ProjectService(FakeProjectRepo(),
+                         task_repo=FakeTaskCounts({"todo": 2, "done": 1}))
+    p = await svc.create(owner_id=1, name="Mine")
+    summary = await svc.summary(p.id, owner_id=1)
+    assert summary == {
+        "tasks": {"todo": 2, "in_progress": 0, "done": 1, "total": 3},
+        "snippets": 0,
+        "bookmarks": 0,
+    }
+    with pytest.raises(NotFoundError):
+        await svc.summary(p.id, owner_id=2)
+
+
 @pytest.mark.asyncio
 async def test_get_other_users_project_raises_not_found():
     svc = ProjectService(FakeProjectRepo())
