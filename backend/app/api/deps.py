@@ -2,22 +2,31 @@ from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pymongo.asynchronous.database import AsyncDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.db.mongo import get_mongo_db
 from app.db.postgres import get_session
+from app.repositories.bookmark_repo import BookmarkRepository
 from app.repositories.project_repo import ProjectRepository
+from app.repositories.snippet_repo import SnippetRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
 from app.services.auth_service import AuthService
+from app.services.bookmark_service import BookmarkService, FetchHtml, default_fetch_html
 from app.services.project_service import ProjectService
+from app.services.snippet_service import SnippetService
 from app.services.task_service import TaskService
 
 bearer = HTTPBearer(auto_error=True)
 
+Session = Annotated[AsyncSession, Depends(get_session)]
+MongoDb = Annotated[AsyncDatabase, Depends(get_mongo_db)]
+
 
 def get_auth_service(
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: Session,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AuthService:
     return AuthService(
@@ -28,16 +37,34 @@ def get_auth_service(
     )
 
 
-def get_project_service(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> ProjectService:
-    return ProjectService(ProjectRepository(session), task_repo=TaskRepository(session))
+def get_project_service(session: Session, mongo_db: MongoDb) -> ProjectService:
+    return ProjectService(
+        ProjectRepository(session),
+        task_repo=TaskRepository(session),
+        snippet_repo=SnippetRepository(mongo_db),
+        bookmark_repo=BookmarkRepository(mongo_db),
+    )
 
 
-def get_task_service(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> TaskService:
+def get_task_service(session: Session) -> TaskService:
     return TaskService(TaskRepository(session), ProjectRepository(session))
+
+
+def get_snippet_service(session: Session, mongo_db: MongoDb) -> SnippetService:
+    return SnippetService(SnippetRepository(mongo_db), ProjectRepository(session))
+
+
+def get_html_fetcher() -> FetchHtml:
+    return default_fetch_html
+
+
+def get_bookmark_service(
+    session: Session,
+    mongo_db: MongoDb,
+    fetch_html: Annotated[FetchHtml, Depends(get_html_fetcher)],
+) -> BookmarkService:
+    return BookmarkService(BookmarkRepository(mongo_db), ProjectRepository(session),
+                           fetch_html=fetch_html)
 
 
 async def get_current_user(

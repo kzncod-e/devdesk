@@ -60,13 +60,13 @@ metadata fetch on bookmark creation, project-deletion detach semantics, real cou
 
 ### Task 5: Schemas + routers + API tests (BackgroundTasks fetch)
 
-- [ ] Failing API tests (mongo testcontainer + SQLite PG): snippets CRUD + filters +
+- [x] Failing API tests (mongo testcontainer + SQLite PG): snippets CRUD + filters +
   owner isolation + 401s + 422s; bookmarks CRUD; bookmark create returns 201 immediately
   and the background task stores metadata from the DI-faked fetcher; project deletion
   detaches; summary returns real counts.
-- [ ] Implement `app/schemas/snippet.py`, `bookmark.py`, routers, DI providers
+- [x] Implement `app/schemas/snippet.py`, `bookmark.py`, routers, DI providers
   (`get_html_fetcher` seam); mount routers.
-- [ ] Full backend suite green; ruff clean. Commit.
+- [x] Full backend suite green; ruff clean. Commit.
 
 ### Task 6: Frontend — TagInput + snippets page with highlighting
 
