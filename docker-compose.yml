@@ -29,6 +29,13 @@ services:
       postgres:
         condition: service_healthy
 
+  nuxt:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   mongodata:

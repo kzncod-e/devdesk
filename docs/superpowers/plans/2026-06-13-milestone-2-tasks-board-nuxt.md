@@ -93,9 +93,9 @@ Docker Compose.
 
 ### Task 9: Dockerize frontend + compose integration + E2E smoke
 
-- [ ] `frontend/Dockerfile` (node:22-alpine, build with API_PROXY_TARGET=http://api:8000,
+- [x] `frontend/Dockerfile` (node:22-alpine, build with API_PROXY_TARGET=http://api:8000,
   run Nitro server), `.dockerignore`; `nuxt` service in docker-compose.yml.
-- [ ] Smoke: `docker compose up -d --build`; `/` and `/login` return 200 from :3000;
+- [x] Smoke: `docker compose up -d --build`; `/` and `/login` return 200 from :3000;
   `/api/v1/health` proxied through Nuxt returns ok; register→login→create project→create
   task→reorder via the proxy; teardown.
-- [ ] Commit.
+- [x] Commit.
