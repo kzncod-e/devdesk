@@ -85,11 +85,11 @@ Docker Compose.
 
 ### Task 8: Task board — columns + drag-and-drop ordering
 
-- [ ] TDD `TaskCard` (title, priority badge, due date) — failing test first.
-- [ ] Board page `/app/projects/[id]`: three status columns, task create/edit/delete,
+- [x] TDD `TaskCard` (title, priority badge, due date) — failing test first.
+- [x] Board page `/app/projects/[id]`: three status columns, task create/edit/delete,
   vuedraggable cross/in-column moves persisting `{status, position}` via PATCH and
   computePosition; summary chips from `/summary`.
-- [ ] Vitest green; build green. Commit.
+- [x] Vitest green; build green. Commit.
 
 ### Task 9: Dockerize frontend + compose integration + E2E smoke
 
