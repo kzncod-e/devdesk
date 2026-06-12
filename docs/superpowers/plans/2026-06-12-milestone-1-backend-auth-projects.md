@@ -76,7 +76,7 @@ devdesk/
 - Create: `backend/tests/conftest.py` (minimal for now)
 - Test: `backend/tests/api/test_health.py`
 
-- [ ] **Step 1: Create `backend/pyproject.toml`**
+- [x] **Step 1: Create `backend/pyproject.toml`**
 
 ```toml
 [project]
@@ -113,12 +113,12 @@ line-length = 100
 target-version = "py312"
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 Run from `backend/`: `python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"`
 Expected: install completes without errors.
 
-- [ ] **Step 3: Write the failing test** — `backend/tests/api/test_health.py`
+- [x] **Step 3: Write the failing test** — `backend/tests/api/test_health.py`
 
 ```python
 import httpx
@@ -139,12 +139,12 @@ async def test_health_returns_ok():
 
 Also create empty `backend/tests/conftest.py` and empty `__init__.py` files in `app/` packages as listed in File Structure.
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 Run: `pytest tests/api/test_health.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app'` or `ImportError: cannot import name 'create_app'`.
 
-- [ ] **Step 5: Write minimal implementation** — `backend/app/main.py`
+- [x] **Step 5: Write minimal implementation** — `backend/app/main.py`
 
 ```python
 from fastapi import FastAPI
@@ -163,11 +163,11 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `pytest tests/api/test_health.py -v` — Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -182,7 +182,7 @@ git commit -m "feat(backend): scaffold FastAPI app with health endpoint"
 - Create: `backend/app/core/config.py`, `backend/.env.example`
 - Test: `backend/tests/unit/test_config.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/unit/test_config.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/unit/test_config.py`
 
 ```python
 from app.core.config import Settings
@@ -198,11 +198,11 @@ def test_settings_reads_env(monkeypatch):
     assert s.refresh_token_days == 7
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/unit/test_config.py -v` — Expected: FAIL (module not found).
 
-- [ ] **Step 3: Implement** — `backend/app/core/config.py`
+- [x] **Step 3: Implement** — `backend/app/core/config.py`
 
 ```python
 from functools import lru_cache
@@ -234,11 +234,11 @@ JWT_SECRET=change-me-in-production
 CORS_ORIGINS=["http://localhost:3000"]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/unit/test_config.py -v` — Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/core/config.py backend/.env.example backend/tests/unit/test_config.py
@@ -253,7 +253,7 @@ git commit -m "feat(backend): pydantic settings module"
 - Create: `backend/app/core/security.py`
 - Test: `backend/tests/unit/test_security.py`
 
-- [ ] **Step 1: Write the failing tests** — `backend/tests/unit/test_security.py`
+- [x] **Step 1: Write the failing tests** — `backend/tests/unit/test_security.py`
 
 ```python
 import pytest
@@ -292,11 +292,11 @@ def test_jwt_rejects_expired():
         decode_token(token, secret="k")
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/unit/test_security.py -v` — Expected: FAIL (import error).
 
-- [ ] **Step 3: Implement** — `backend/app/core/security.py`
+- [x] **Step 3: Implement** — `backend/app/core/security.py`
 
 ```python
 from datetime import datetime, timedelta, timezone
@@ -331,11 +331,11 @@ def decode_token(token: str, *, secret: str, algorithm: str = "HS256") -> dict:
     return jwt.decode(token, secret, algorithms=[algorithm])
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/unit/test_security.py -v` — Expected: 4 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/core/security.py backend/tests/unit/test_security.py
@@ -350,7 +350,7 @@ git commit -m "feat(backend): bcrypt and JWT security helpers"
 - Create: `backend/app/db/postgres.py`, `backend/app/models/user.py`, `backend/app/models/project.py`
 - Modify: `backend/app/main.py` (lifespan creates tables)
 
-- [ ] **Step 1: Implement `backend/app/db/postgres.py`** (infrastructure — verified by integration tests in Task 5)
+- [x] **Step 1: Implement `backend/app/db/postgres.py`** (infrastructure — verified by integration tests in Task 5)
 
 ```python
 from collections.abc import AsyncIterator
@@ -382,7 +382,7 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 ```
 
-- [ ] **Step 2: Implement `backend/app/models/user.py`**
+- [x] **Step 2: Implement `backend/app/models/user.py`**
 
 ```python
 from datetime import datetime
@@ -405,7 +405,7 @@ class User(Base):
     )
 ```
 
-- [ ] **Step 3: Implement `backend/app/models/project.py`**
+- [x] **Step 3: Implement `backend/app/models/project.py`**
 
 ```python
 from datetime import datetime
@@ -433,7 +433,7 @@ class Project(Base):
     )
 ```
 
-- [ ] **Step 4: Wire table creation into the app lifespan** — replace `backend/app/main.py` with:
+- [x] **Step 4: Wire table creation into the app lifespan** — replace `backend/app/main.py` with:
 
 ```python
 from contextlib import asynccontextmanager
@@ -470,12 +470,12 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 5: Run existing tests to verify nothing broke**
+- [x] **Step 5: Run existing tests to verify nothing broke**
 
 Run: `pytest tests/unit tests/api/test_health.py -v`
 Expected: all PASS (health test uses ASGITransport without lifespan, so no DB needed).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/db backend/app/models backend/app/main.py
@@ -490,7 +490,7 @@ git commit -m "feat(backend): async SQLAlchemy setup with User and Project model
 - Create: `backend/app/repositories/user_repo.py`, `backend/app/repositories/project_repo.py`
 - Test: `backend/tests/integration/test_repositories.py`
 
-- [ ] **Step 1: Write the failing integration tests** — `backend/tests/integration/test_repositories.py`
+- [x] **Step 1: Write the failing integration tests** — `backend/tests/integration/test_repositories.py`
 
 ```python
 import pytest
@@ -556,12 +556,12 @@ async def test_project_crud_scoped_by_owner(session):
     assert await repo.get_for_owner(p.id, owner.id) is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/integration -v` (requires local Docker running)
 Expected: FAIL with import errors for the repositories.
 
-- [ ] **Step 3: Implement `backend/app/repositories/user_repo.py`**
+- [x] **Step 3: Implement `backend/app/repositories/user_repo.py`**
 
 ```python
 from sqlalchemy import select
@@ -589,7 +589,7 @@ class UserRepository:
         return await self.session.get(User, user_id)
 ```
 
-- [ ] **Step 4: Implement `backend/app/repositories/project_repo.py`**
+- [x] **Step 4: Implement `backend/app/repositories/project_repo.py`**
 
 ```python
 from sqlalchemy import select
@@ -639,11 +639,11 @@ class ProjectRepository:
         await self.session.commit()
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/integration -v` — Expected: 2 PASS (first run pulls the postgres image; allow a minute).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/repositories backend/tests/integration
@@ -658,7 +658,7 @@ git commit -m "feat(backend): user and project repositories with testcontainers 
 - Create: `backend/app/core/errors.py`, `backend/app/services/auth_service.py`
 - Test: `backend/tests/unit/test_auth_service.py`
 
-- [ ] **Step 1: Implement `backend/app/core/errors.py`** (tiny, no test of its own — exercised everywhere)
+- [x] **Step 1: Implement `backend/app/core/errors.py`** (tiny, no test of its own — exercised everywhere)
 
 ```python
 class AppError(Exception):
@@ -685,7 +685,7 @@ class NotFoundError(AppError):
     code = "not_found"
 ```
 
-- [ ] **Step 2: Write the failing tests** — `backend/tests/unit/test_auth_service.py`
+- [x] **Step 2: Write the failing tests** — `backend/tests/unit/test_auth_service.py`
 
 ```python
 import pytest
@@ -755,11 +755,11 @@ async def test_refresh_rejects_access_token():
     assert new_tokens.access_token
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `pytest tests/unit/test_auth_service.py -v` — Expected: FAIL (no AuthService).
 
-- [ ] **Step 4: Implement `backend/app/services/auth_service.py`**
+- [x] **Step 4: Implement `backend/app/services/auth_service.py`**
 
 ```python
 from dataclasses import dataclass
@@ -828,11 +828,11 @@ class AuthService:
             raise UnauthorizedError("Invalid or expired token") from exc
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/unit/test_auth_service.py -v` — Expected: 4 PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/core/errors.py backend/app/services/auth_service.py backend/tests/unit/test_auth_service.py
@@ -847,7 +847,7 @@ git commit -m "feat(backend): auth service with register/login/refresh and error
 - Create: `backend/app/services/project_service.py`
 - Test: `backend/tests/unit/test_project_service.py`
 
-- [ ] **Step 1: Write the failing tests** — `backend/tests/unit/test_project_service.py`
+- [x] **Step 1: Write the failing tests** — `backend/tests/unit/test_project_service.py`
 
 ```python
 import pytest
@@ -909,11 +909,11 @@ async def test_update_and_delete_are_owner_scoped():
         await svc.get(p.id, owner_id=1)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/unit/test_project_service.py -v` — Expected: FAIL.
 
-- [ ] **Step 3: Implement `backend/app/services/project_service.py`**
+- [x] **Step 3: Implement `backend/app/services/project_service.py`**
 
 ```python
 from app.core.errors import NotFoundError
@@ -946,11 +946,11 @@ class ProjectService:
         await self.repo.delete(project)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/unit/test_project_service.py -v` — Expected: 2 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/services/project_service.py backend/tests/unit/test_project_service.py
@@ -966,7 +966,7 @@ git commit -m "feat(backend): owner-scoped project service"
 - Modify: `backend/app/main.py` (mount routers, exception handlers, CORS)
 - Test: `backend/tests/api/test_auth_api.py`, `backend/tests/api/test_projects_api.py`, shared fixtures in `backend/tests/conftest.py`
 
-- [ ] **Step 1: Write shared API test fixtures** — replace `backend/tests/conftest.py`:
+- [x] **Step 1: Write shared API test fixtures** — replace `backend/tests/conftest.py`:
 
 ```python
 import httpx
@@ -1012,7 +1012,7 @@ async def register_and_login(client, email="user@test.dev", password="pw123456")
     return {"Authorization": f"Bearer {token}"}
 ```
 
-- [ ] **Step 2: Write the failing API tests** — `backend/tests/api/test_auth_api.py`:
+- [x] **Step 2: Write the failing API tests** — `backend/tests/api/test_auth_api.py`:
 
 ```python
 import pytest
@@ -1129,11 +1129,11 @@ async def test_projects_require_auth(client):
     assert r.status_code in (401, 403)
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `pytest tests/api -v` — Expected: FAIL (404s — routes don't exist).
 
-- [ ] **Step 4: Implement schemas** — `backend/app/schemas/auth.py`:
+- [x] **Step 4: Implement schemas** — `backend/app/schemas/auth.py`:
 
 ```python
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -1199,7 +1199,7 @@ class ProjectOut(BaseModel):
     color: str
 ```
 
-- [ ] **Step 5: Implement dependencies** — `backend/app/api/deps.py`:
+- [x] **Step 5: Implement dependencies** — `backend/app/api/deps.py`:
 
 ```python
 from typing import Annotated
@@ -1243,7 +1243,7 @@ async def get_current_user(
     return await auth.get_user(creds.credentials)
 ```
 
-- [ ] **Step 6: Implement routers** — `backend/app/routers/auth.py`:
+- [x] **Step 6: Implement routers** — `backend/app/routers/auth.py`:
 
 ```python
 from typing import Annotated
@@ -1327,7 +1327,7 @@ async def delete_project(project_id: int, user: CurrentUser, svc: Service):
     await svc.delete(project_id, user.id)
 ```
 
-- [ ] **Step 7: Wire everything in `backend/app/main.py`** — replace the file:
+- [x] **Step 7: Wire everything in `backend/app/main.py`** — replace the file:
 
 ```python
 from contextlib import asynccontextmanager
@@ -1384,12 +1384,12 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 8: Run the full suite**
+- [x] **Step 8: Run the full suite**
 
 Run: `pytest tests/unit tests/api -v` — Expected: all PASS.
 Then: `pytest tests -v` (includes integration; Docker required) — Expected: all PASS.
 
-- [ ] **Step 9: Lint and commit**
+- [x] **Step 9: Lint and commit**
 
 ```bash
 ruff check backend/ --fix
@@ -1404,7 +1404,7 @@ git commit -m "feat(backend): auth and projects REST API with error envelope and
 **Files:**
 - Create: `backend/Dockerfile`, `docker-compose.yml`, `backend/.dockerignore`
 
-- [ ] **Step 1: Create `backend/Dockerfile`**
+- [x] **Step 1: Create `backend/Dockerfile`**
 
 ```dockerfile
 FROM python:3.12-slim AS base
@@ -1427,7 +1427,7 @@ tests
 .ruff_cache
 ```
 
-- [ ] **Step 2: Create `docker-compose.yml`** (repo root)
+- [x] **Step 2: Create `docker-compose.yml`** (repo root)
 
 ```yaml
 services:
@@ -1468,7 +1468,7 @@ volumes:
 
 (Mongo is included now so the compose topology is final; the API starts using it in Milestone 3.)
 
-- [ ] **Step 3: Smoke-test the stack**
+- [x] **Step 3: Smoke-test the stack**
 
 Run: `docker compose up -d --build`
 Then: `curl -s http://localhost:8000/api/v1/health`
@@ -1484,7 +1484,7 @@ curl -s -X POST http://localhost:8000/api/v1/auth/register \
 
 Expected: JSON with `id`, `email`, `name` and HTTP 201. Visit `http://localhost:8000/docs` and confirm OpenAPI docs render.
 
-- [ ] **Step 4: Tear down and commit**
+- [x] **Step 4: Tear down and commit**
 
 ```bash
 docker compose down
