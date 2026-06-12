@@ -25,13 +25,13 @@ metadata). Stack shippable via Docker Compose.
 
 ### Task 1: Postgres search — projects + tasks repos
 
-- [ ] Failing integration tests (testcontainers PG): `ProjectRepository.search` matches
+- [x] Failing integration tests (testcontainers PG): `ProjectRepository.search` matches
   name/description with stemming (e.g. "deploying" → "deploy"), owner-scoped;
   `TaskRepository.search` matches title/description, owner-scoped via project join;
   no-match returns [].
-- [ ] Implement `search()` on both repos: `websearch_to_tsquery('english', q)` on PG,
+- [x] Implement `search()` on both repos: `websearch_to_tsquery('english', q)` on PG,
   ILIKE fallback elsewhere (dialect-guarded).
-- [ ] Integration suite green. Commit.
+- [x] Integration suite green. Commit.
 
 ### Task 2: Mongo text indexes + search methods
 

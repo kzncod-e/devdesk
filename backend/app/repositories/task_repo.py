@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
 from app.models.task import Task
+from app.repositories.project_repo import fts_clause
 
 
 class TaskRepository:
@@ -40,6 +41,17 @@ class TaskRepository:
         )
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
+
+    async def search(self, owner_id: int, q: str, *, limit: int) -> list[Task]:
+        stmt = (
+            select(Task)
+            .join(Project, Task.project_id == Project.id)
+            .where(Project.owner_id == owner_id,
+                   fts_clause(self.session, Task.title, Task.description, q=q))
+            .limit(limit)
+        )
+        res = await self.session.execute(stmt)
+        return list(res.scalars().all())
 
     async def max_position(self, project_id: int, status: str) -> float | None:
         stmt = select(func.max(Task.position)).where(
