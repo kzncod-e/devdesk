@@ -68,12 +68,12 @@ Docker Compose.
 
 ### Task 6: Position util + auth composables + auth pages
 
-- [ ] TDD `app/utils/position.ts` (`computePosition(prev, next)`): empty column, top,
+- [x] TDD `app/utils/position.ts` (`computePosition(prev, next)`): empty column, top,
   bottom, between; failing tests first.
-- [ ] Implement `useAuth` (access token in memory via `useState`, login/register/refresh/
+- [x] Implement `useAuth` (access token in memory via `useState`, login/register/refresh/
   logout/me, $fetch wrapper with 401→refresh→retry) and `auth` route middleware.
-- [ ] Login/register pages wired to the API; landing page links.
-- [ ] Vitest green; `npm run build` green. Commit.
+- [x] Login/register pages wired to the API; landing page links.
+- [x] Vitest green; `npm run build` green. Commit.
 
 ### Task 7: Dashboard — projects CRUD (TanStack Query)
 
