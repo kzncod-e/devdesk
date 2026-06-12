@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'happy-dom',
+    globals: true, // @testing-library/vue auto-cleanup hooks into global afterEach
     include: ['tests/**/*.spec.ts'],
   },
   resolve: {

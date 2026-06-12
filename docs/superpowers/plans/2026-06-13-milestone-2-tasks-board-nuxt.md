@@ -77,11 +77,11 @@ Docker Compose.
 
 ### Task 7: Dashboard — projects CRUD (TanStack Query)
 
-- [ ] TDD `ProjectCard` component (renders name/description/status, emits open/archive/
+- [x] TDD `ProjectCard` component (renders name/description/status, emits open/archive/
   delete) — failing test first.
-- [ ] Dashboard page: list projects (useQuery), create/edit form, archive + delete with
+- [x] Dashboard page: list projects (useQuery), create/edit form, archive + delete with
   invalidation (useMutation).
-- [ ] Vitest green; build green. Commit.
+- [x] Vitest green; build green. Commit.
 
 ### Task 8: Task board — columns + drag-and-drop ordering
 
