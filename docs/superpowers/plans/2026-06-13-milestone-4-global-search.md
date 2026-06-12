@@ -44,10 +44,10 @@ metadata). Stack shippable via Docker Compose.
 
 ### Task 3: SearchService (unit-tested with fakes)
 
-- [ ] Failing unit tests: fans out to all four repos with owner_id/q/limit, returns
+- [x] Failing unit tests: fans out to all four repos with owner_id/q/limit, returns
   grouped dict; per-group limit respected.
-- [ ] Implement `app/services/search_service.py`.
-- [ ] Unit suite green. Commit.
+- [x] Implement `app/services/search_service.py`.
+- [x] Unit suite green. Commit.
 
 ### Task 4: /search endpoint + API tests
 
