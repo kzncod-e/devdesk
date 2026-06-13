@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
 from app.models.task import Task
+from app.models.user import User
 from app.repositories.project_repo import fts_clause
 
 
@@ -14,10 +15,18 @@ class TaskRepository:
 
     async def create(self, *, project_id: int, title: str, position: float,
                      description: str = "", priority: str = "medium",
-                     due_date: date | None = None) -> Task:
+                     due_date: date | None = None,
+                     assignees: list[User] | None = None) -> Task:
         task = Task(project_id=project_id, title=title, position=position,
-                    description=description, priority=priority, due_date=due_date)
+                    description=description, priority=priority, due_date=due_date,
+                    assignees=assignees or [])
         self.session.add(task)
+        await self.session.commit()
+        await self.session.refresh(task)
+        return task
+
+    async def set_assignees(self, task: Task, users: list[User]) -> Task:
+        task.assignees = users
         await self.session.commit()
         await self.session.refresh(task)
         return task

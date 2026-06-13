@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_current_user, get_task_service
-from app.schemas.task import TaskIn, TaskOut, TaskPatch
+from app.schemas.task import AssigneesIn, TaskIn, TaskOut, TaskPatch
 from app.services.task_service import TaskService
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
@@ -17,7 +17,12 @@ Service = Annotated[TaskService, Depends(get_task_service)]
 async def create_task(project_id: int, body: TaskIn, user: CurrentUser, svc: Service):
     return await svc.create(owner_id=user.id, project_id=project_id, title=body.title,
                             description=body.description, priority=body.priority,
-                            due_date=body.due_date)
+                            due_date=body.due_date, assignee_ids=body.assignee_ids)
+
+
+@router.put("/tasks/{task_id}/assignees", response_model=TaskOut)
+async def set_task_assignees(task_id: int, body: AssigneesIn, user: CurrentUser, svc: Service):
+    return await svc.set_assignees(task_id, user.id, body.user_ids)
 
 
 @router.get("/projects/{project_id}/tasks", response_model=list[TaskOut])

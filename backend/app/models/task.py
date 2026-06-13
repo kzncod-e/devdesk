@@ -1,9 +1,28 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.postgres import Base
+from app.models.user import User
+
+# Many-to-many join: which users are assigned to a task.
+task_assignees = Table(
+    "task_assignees",
+    Base.metadata,
+    Column("task_id", ForeignKey("tasks.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class Task(Base):
@@ -22,4 +41,9 @@ class Task(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Eager-loaded in a single extra query when listing tasks (avoids N+1).
+    assignees: Mapped[list[User]] = relationship(
+        secondary=task_assignees, lazy="selectin", order_by=User.name
     )

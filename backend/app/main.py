@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.db.mongo import ensure_mongo_indexes, get_client
 from app.db.postgres import Base, engine
-from app.routers import admin, auth, bookmarks, projects, search, snippets, tasks
+from app.routers import admin, auth, bookmarks, projects, search, snippets, tasks, users
 import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.task  # noqa: F401
@@ -20,6 +20,15 @@ _MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'member'",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)",
+    # Task assignees join table (Base.metadata.create_all also creates it, but this is
+    # explicit/idempotent and keeps the ON DELETE CASCADE behaviour on existing DBs).
+    """
+    CREATE TABLE IF NOT EXISTS task_assignees (
+        task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (task_id, user_id)
+    )
+    """,
 ]
 
 
@@ -72,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(snippets.router)
     app.include_router(bookmarks.router)
     app.include_router(search.router)
+    app.include_router(users.router)
 
     return app
 

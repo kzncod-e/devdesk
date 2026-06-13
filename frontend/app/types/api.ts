@@ -25,6 +25,12 @@ export interface Project {
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high'
 
+export interface UserBrief {
+  id: number
+  name: string
+  avatar_url: string | null
+}
+
 export interface Task {
   id: number
   project_id: number
@@ -34,6 +40,10 @@ export interface Task {
   priority: TaskPriority
   position: number
   due_date: string | null
+  assignees: UserBrief[]
+  // Phases 2–3: populated once comments/attachments ship; cards render chips when > 0.
+  comment_count?: number
+  attachment_count?: number
 }
 
 export interface ProjectSummary {

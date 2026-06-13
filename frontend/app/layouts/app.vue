@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useQuery } from "@tanstack/vue-query";
+
 import { useAppReady } from "~/composables/useAppReady";
 import { useCommandPalette } from "~/composables/useCommandPalette";
 import { useTheme } from "~/composables/useTheme";
+import type { Project } from "~/types/api";
 
-const { user, logout } = useAuth();
+const { user, api, logout } = useAuth();
 const { mode, toggle: toggleTheme } = useTheme();
 const { show: showPalette } = useCommandPalette();
 const { isReady, hasOnboarded, markReady } = useAppReady();
@@ -44,7 +47,6 @@ onMounted(() => {
 });
 
 const nav = [
-  { to: "/app", label: "Projects", icon: "folder" },
   { to: "/app/snippets", label: "Snippets", icon: "code" },
   { to: "/app/bookmarks", label: "Bookmarks", icon: "bookmark" },
   { to: "/app/settings", label: "Settings", icon: "settings" },
@@ -52,10 +54,27 @@ const nav = [
 
 const route = useRoute();
 function isActive(to: string) {
-  if (to === "/app")
-    return route.path === "/app" || route.path.startsWith("/app/projects");
   return route.path.startsWith(to);
 }
+
+// ── Projects sub-nav (expandable, real projects) ───────────────
+const { data: projects } = useQuery({
+  queryKey: ["projects"],
+  queryFn: () => api<Project[]>("/api/v1/projects"),
+});
+
+const onProjects = computed(
+  () => route.path === "/app" || route.path.startsWith("/app/projects"),
+);
+const projectsOpen = ref(true);
+// Auto-expand whenever the user is anywhere under Projects.
+watch(onProjects, (v) => v && (projectsOpen.value = true), { immediate: true });
+
+const activeProjectId = computed(() =>
+  route.path.startsWith("/app/projects/")
+    ? Number(route.params.id ?? route.path.split("/")[3])
+    : null,
+);
 
 const initials = computed(() =>
   (user.value?.name ?? "U")
@@ -98,6 +117,61 @@ const initials = computed(() =>
         Workspace
       </p>
       <nav class="flex flex-col gap-0.5">
+        <!-- Projects: expandable section -->
+        <div>
+          <div
+            :class="[
+              'group flex items-center gap-2.5 rounded-lg pl-3 pr-1.5 text-sm font-medium transition-colors',
+              onProjects ? 'bg-accent-soft text-accent' : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+            ]"
+          >
+            <NuxtLink to="/app" class="flex flex-1 items-center gap-2.5 py-2">
+              <UiIcon
+                name="folder"
+                :size="18"
+                :class="onProjects ? 'text-accent' : 'text-ink-subtle group-hover:text-ink-muted'"
+              />
+              Projects
+            </NuxtLink>
+            <button
+              type="button"
+              class="grid size-6 place-items-center rounded-md text-ink-subtle transition hover:bg-surface-3"
+              :aria-label="projectsOpen ? 'Collapse projects' : 'Expand projects'"
+              @click="projectsOpen = !projectsOpen"
+            >
+              <UiIcon name="chevronDown" :size="15" :class="['transition-transform', projectsOpen ? '' : '-rotate-90']" />
+            </button>
+          </div>
+
+          <div v-if="projectsOpen" class="mt-1 ml-4.5 flex flex-col">
+            <NuxtLink
+              v-for="p in projects ?? []"
+              :key="p.id"
+              :to="`/app/projects/${p.id}`"
+              :class="[
+                'group/proj relative flex items-center gap-2 rounded-md py-1.5 pl-5 pr-2.5 text-sm transition-colors',
+                // vertical trunk: full height, but the last row only draws to its centre (clean tree end)
+                'before:absolute before:left-0 before:top-0 before:w-px before:bg-line before:h-full last:before:h-1/2',
+                // horizontal elbow tick into the row
+                'after:absolute after:left-0 after:top-1/2 after:h-px after:w-3 after:-translate-y-1/2 after:bg-line',
+                activeProjectId === p.id ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+              ]"
+            >
+              <span
+                class="size-2 shrink-0 rounded-full ring-2 ring-surface transition-transform group-hover/proj:scale-110"
+                :style="{ backgroundColor: p.color }"
+              />
+              <span class="truncate">{{ p.name }}</span>
+            </NuxtLink>
+            <p
+              v-if="!(projects ?? []).length"
+              class="relative py-1.5 pl-5 text-xs text-ink-subtle before:absolute before:left-0 before:top-0 before:h-1/2 before:w-px before:bg-line after:absolute after:left-0 after:top-1/2 after:h-px after:w-3 after:bg-line"
+            >
+              No projects yet
+            </p>
+          </div>
+        </div>
+
         <NuxtLink
           v-for="item in nav"
           :key="item.to"
@@ -222,8 +296,18 @@ const initials = computed(() =>
 
       <!-- Mobile nav -->
       <nav
-        class="flex shrink-0 gap-1 border-b border-line bg-surface/60 px-4 py-2 md:hidden"
+        class="flex shrink-0 gap-1 overflow-x-auto border-b border-line bg-surface/60 px-4 py-2 md:hidden"
       >
+        <NuxtLink
+          to="/app"
+          :class="[
+            'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium',
+            onProjects ? 'bg-accent-soft text-accent' : 'text-ink-muted',
+          ]"
+        >
+          <UiIcon name="folder" :size="16" />
+          Projects
+        </NuxtLink>
         <NuxtLink
           v-for="item in nav"
           :key="item.to"

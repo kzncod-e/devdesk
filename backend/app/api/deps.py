@@ -50,7 +50,9 @@ def get_project_service(session: Session, mongo_db: MongoDb) -> ProjectService:
 
 
 def get_task_service(session: Session) -> TaskService:
-    return TaskService(TaskRepository(session), ProjectRepository(session))
+    return TaskService(
+        TaskRepository(session), ProjectRepository(session), UserRepository(session)
+    )
 
 
 def get_snippet_service(session: Session, mongo_db: MongoDb) -> SnippetService:

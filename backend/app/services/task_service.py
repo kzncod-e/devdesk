@@ -6,20 +6,29 @@ POSITION_STEP = 1024.0
 
 
 class TaskService:
-    def __init__(self, task_repo, project_repo) -> None:
+    def __init__(self, task_repo, project_repo, user_repo) -> None:
         self.task_repo = task_repo
         self.project_repo = project_repo
+        self.user_repo = user_repo
 
     async def create(self, *, owner_id: int, project_id: int, title: str,
                      description: str = "", priority: str = "medium",
-                     due_date: date | None = None):
+                     due_date: date | None = None,
+                     assignee_ids: list[int] | None = None):
         await self._require_project(project_id, owner_id)
         max_pos = await self.task_repo.max_position(project_id, "todo")
         position = (max_pos or 0.0) + POSITION_STEP
+        assignees = await self.user_repo.get_by_ids(assignee_ids or [])
         return await self.task_repo.create(
             project_id=project_id, title=title, position=position,
             description=description, priority=priority, due_date=due_date,
+            assignees=assignees,
         )
+
+    async def set_assignees(self, task_id: int, owner_id: int, user_ids: list[int]):
+        task = await self._require_task(task_id, owner_id)
+        users = await self.user_repo.get_by_ids(user_ids)
+        return await self.task_repo.set_assignees(task, users)
 
     async def list(self, *, owner_id: int, project_id: int,
                    limit: int = 200, offset: int = 0):

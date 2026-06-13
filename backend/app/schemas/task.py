@@ -3,11 +3,24 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class UserBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    avatar_url: str | None = None
+
+
 class TaskIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = ""
     priority: str = Field(default="medium", pattern=r"^(low|medium|high)$")
     due_date: date | None = None
+    assignee_ids: list[int] = Field(default_factory=list)
+
+
+class AssigneesIn(BaseModel):
+    user_ids: list[int] = Field(default_factory=list)
 
 
 class TaskPatch(BaseModel):
@@ -30,6 +43,7 @@ class TaskOut(BaseModel):
     priority: str
     position: float
     due_date: date | None
+    assignees: list[UserBrief] = Field(default_factory=list)
 
 
 class TaskCounts(BaseModel):

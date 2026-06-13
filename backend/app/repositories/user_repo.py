@@ -22,6 +22,12 @@ class UserRepository:
     async def get_by_id(self, user_id: int) -> User | None:
         return await self.session.get(User, user_id)
 
+    async def get_by_ids(self, user_ids: list[int]) -> list[User]:
+        if not user_ids:
+            return []
+        res = await self.session.execute(select(User).where(User.id.in_(user_ids)))
+        return list(res.scalars().all())
+
     async def list_all(self, *, limit: int = 100, offset: int = 0) -> list[User]:
         res = await self.session.execute(
             select(User).order_by(User.created_at).limit(limit).offset(offset)
