@@ -1,11 +1,13 @@
-import uuid
-from pathlib import Path
+import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+import cloudinary
+import cloudinary.utils
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_current_user, get_project_service
-from app.core.errors import UnprocessableError
+from app.core.config import get_settings
+from app.core.errors import AppError
 from app.schemas.project import ProjectIn, ProjectOut, ProjectPatch
 from app.schemas.task import ProjectSummaryOut
 from app.services.project_service import ProjectService
@@ -14,11 +16,6 @@ router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 CurrentUser = Annotated[object, Depends(get_current_user)]
 Service = Annotated[ProjectService, Depends(get_project_service)]
-
-_UPLOAD_ROOT = Path("/app/static/uploads/projects")
-_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
-_ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-_MIME_EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
@@ -56,28 +53,24 @@ async def delete_project(project_id: int, user: CurrentUser, svc: Service):
     await svc.delete(project_id, user.id)
 
 
-@router.post("/{project_id}/image", response_model=ProjectOut)
-async def upload_project_image(
-    project_id: int,
-    user: CurrentUser,
-    svc: Service,
-    file: UploadFile = File(...),
-):
-    await svc.get(project_id, user.id)  # verifies ownership, raises NotFoundError if not owner
+@router.get("/{project_id}/upload-signature")
+async def get_upload_signature(project_id: int, user: CurrentUser, svc: Service):
+    """Returns a signed upload token so the browser can POST directly to Cloudinary."""
+    await svc.get(project_id, user.id)  # verifies ownership
 
-    if file.content_type not in _ALLOWED_MIME:
-        raise UnprocessableError(
-            f"Unsupported file type '{file.content_type}'. Allowed: JPEG, PNG, WebP, GIF"
-        )
+    settings = get_settings()
+    if not settings.cloudinary_cloud_name:
+        raise AppError("Image upload is not configured (missing Cloudinary credentials)")
 
-    data = await file.read()
-    if len(data) > _MAX_IMAGE_BYTES:
-        raise UnprocessableError("Image must be smaller than 5 MB")
+    public_id = f"devdesk/projects/project_{project_id}"
+    timestamp = int(time.time())
+    params_to_sign = {"public_id": public_id, "timestamp": timestamp}
+    signature = cloudinary.utils.api_sign_request(params_to_sign, settings.cloudinary_api_secret)
 
-    ext = _MIME_EXT[file.content_type]
-    filename = f"{uuid.uuid4().hex}{ext}"
-    _UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
-    ((_UPLOAD_ROOT / filename)).write_bytes(data)
-
-    image_url = f"/static/uploads/projects/{filename}"
-    return await svc.update(project_id, user.id, image_url=image_url)
+    return {
+        "signature": signature,
+        "timestamp": timestamp,
+        "api_key": settings.cloudinary_api_key,
+        "cloud_name": settings.cloudinary_cloud_name,
+        "public_id": public_id,
+    }

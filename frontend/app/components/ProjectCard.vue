@@ -13,6 +13,13 @@ defineEmits<{
 }>()
 
 const isActive = computed(() => props.project.status === 'active')
+
+// Insert Cloudinary transformation params between /upload/ and the public_id.
+// e.g. "https://res.cloudinary.com/cloud/image/upload/path/to/img.jpg"
+//   → "https://res.cloudinary.com/cloud/image/upload/c_fill,g_auto,f_auto,q_auto,w_384,h_96/path/to/img.jpg"
+function cldOptimize(url: string) {
+  return url.replace('/upload/', '/upload/c_fill,g_auto,f_auto,q_auto,w_384,h_96/')
+}
 </script>
 
 <template>
@@ -23,9 +30,12 @@ const isActive = computed(() => props.project.status === 'active')
     <!-- Cover image or accent bar -->
     <div v-if="project.image_url" class="relative h-24 overflow-hidden">
       <img
-        :src="project.image_url"
+        :src="cldOptimize(project.image_url)"
         :alt="project.name"
         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        width="384"
+        height="96"
+        loading="lazy"
       >
       <div class="absolute inset-0 bg-linear-to-b from-transparent to-surface/60" />
     </div>

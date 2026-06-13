@@ -1,10 +1,10 @@
-import os
 from contextlib import asynccontextmanager
 
+import cloudinary
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.core.errors import AppError
@@ -15,14 +15,27 @@ import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
 import app.models.task  # noqa: F401
 
-UPLOADS_DIR = "/app/static/uploads"
+# Columns added after initial schema creation — safe to run repeatedly.
+_MIGRATIONS = [
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'member'",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)",
+]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    os.makedirs(os.path.join(UPLOADS_DIR, "projects"), exist_ok=True)
+    settings = get_settings()
+    cloudinary.config(
+        cloud_name=settings.cloudinary_cloud_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        for stmt in _MIGRATIONS:
+            await conn.execute(text(stmt))
     await ensure_mongo_indexes(get_client()[get_settings().mongo_db_name])
     yield
 
@@ -59,9 +72,6 @@ def create_app() -> FastAPI:
     app.include_router(snippets.router)
     app.include_router(bookmarks.router)
     app.include_router(search.router)
-
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
-    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 
     return app
 

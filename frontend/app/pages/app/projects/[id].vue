@@ -27,10 +27,10 @@ const { data: summary } = useQuery({
   queryFn: () => api<ProjectSummary>(`/api/v1/projects/${projectId}/summary`),
 })
 
-const statusColumns: { key: TaskStatus; label: string; tone: 'gray' | 'amber' | 'green' }[] = [
-  { key: 'todo', label: 'To do', tone: 'gray' },
-  { key: 'in_progress', label: 'In progress', tone: 'amber' },
-  { key: 'done', label: 'Done', tone: 'green' },
+const statusColumns: { key: TaskStatus; label: string; dot: string; bar: string }[] = [
+  { key: 'todo', label: 'To do', dot: 'bg-slate-400', bar: 'bg-slate-400/10' },
+  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500', bar: 'bg-amber-500/10' },
+  { key: 'done', label: 'Done', dot: 'bg-emerald-500', bar: 'bg-emerald-500/10' },
 ]
 
 // local mutable copies for vuedraggable; rebuilt whenever the query refetches
@@ -156,13 +156,11 @@ async function confirmDelete(t: Task) {
 
 <template>
   <div class="mx-auto max-w-6xl px-5 py-8 md:px-8">
-    <NuxtLink
-      to="/app"
-      class="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-muted transition hover:text-ink"
-    >
-      <UiIcon name="chevron" :size="15" class="rotate-180" />
-      Projects
-    </NuxtLink>
+    <nav class="mb-4 flex items-center gap-1.5 text-sm text-ink-muted">
+      <NuxtLink to="/app" class="transition hover:text-ink">Projects</NuxtLink>
+      <UiIcon name="chevron" :size="14" class="text-ink-subtle" />
+      <span class="font-medium text-ink">{{ project?.name ?? '…' }}</span>
+    </nav>
 
     <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
       <div class="flex items-start gap-3">
@@ -212,12 +210,12 @@ async function confirmDelete(t: Task) {
         :key="col.key"
         class="flex flex-col rounded-xl border border-line bg-surface-2/60 p-3"
       >
-        <h2 class="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-ink">
-          <span class="size-2 rounded-full" :class="{
-            todo: 'bg-slate-400', in_progress: 'bg-amber-500', done: 'bg-green-500',
-          }[col.key]" />
+        <h2
+          :class="['mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-ink', col.bar]"
+        >
+          <span :class="['size-2.5 rounded-full', col.dot]" />
           {{ col.label }}
-          <span class="ml-auto rounded-full bg-surface-3 px-2 py-0.5 text-xs font-medium text-ink-muted">
+          <span class="ml-auto rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-ink-muted shadow-sm">
             {{ columns[col.key].length }}
           </span>
         </h2>

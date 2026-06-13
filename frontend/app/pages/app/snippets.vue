@@ -1,87 +1,95 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useConfirm } from "~/composables/useConfirm";
+import { useToast } from "~/composables/useToast";
 
-import type { Project, Snippet } from '~/types/api'
+import type { Project, Snippet } from "~/types/api";
 
-definePageMeta({ middleware: 'auth', layout: 'app' })
+definePageMeta({ middleware: "auth", layout: "app" });
 
-const { api } = useAuth()
-const queryClient = useQueryClient()
-const { confirm } = useConfirm()
-const { success, error } = useToast()
+const { api } = useAuth();
+const queryClient = useQueryClient();
+const { confirm } = useConfirm();
+const { success, error } = useToast();
 
-const languageFilter = ref('')
-const tagFilter = ref('')
-const projectFilter = ref<number | null>(null)
+const languageFilter = ref("");
+const tagFilter = ref("");
+const projectFilter = ref<number | null>(null);
 
 const filters = computed(() => {
-  const params = new URLSearchParams()
-  if (languageFilter.value) params.set('language', languageFilter.value)
-  if (tagFilter.value) params.set('tag', tagFilter.value)
-  if (projectFilter.value !== null) params.set('project_id', String(projectFilter.value))
-  const qs = params.toString()
-  return qs ? `?${qs}` : ''
-})
+  const params = new URLSearchParams();
+  if (languageFilter.value) params.set("language", languageFilter.value);
+  if (tagFilter.value) params.set("tag", tagFilter.value);
+  if (projectFilter.value !== null)
+    params.set("project_id", String(projectFilter.value));
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+});
 
 const { data: projects } = useQuery({
-  queryKey: ['projects'],
-  queryFn: () => api<Project[]>('/api/v1/projects'),
-})
+  queryKey: ["projects"],
+  queryFn: () => api<Project[]>("/api/v1/projects"),
+});
 
 const { data: snippets, isPending } = useQuery({
-  queryKey: ['snippets', filters],
+  queryKey: ["snippets", filters],
   queryFn: () => api<Snippet[]>(`/api/v1/snippets${filters.value}`),
-})
+});
 
 const hasFilters = computed(
-  () => !!languageFilter.value || !!tagFilter.value || projectFilter.value !== null,
-)
+  () =>
+    !!languageFilter.value || !!tagFilter.value || projectFilter.value !== null,
+);
 
-const showForm = ref(false)
-const editing = ref<Snippet | null>(null)
+const showForm = ref(false);
+const editing = ref<Snippet | null>(null);
 
 function openCreate() {
-  editing.value = null
-  showForm.value = true
+  editing.value = null;
+  showForm.value = true;
 }
 function startEdit(s: Snippet) {
-  editing.value = s
-  showForm.value = true
+  editing.value = s;
+  showForm.value = true;
 }
 function closeForm() {
-  showForm.value = false
-  editing.value = null
+  showForm.value = false;
+  editing.value = null;
 }
 
 const saveSnippet = useMutation({
   mutationFn: (data: Record<string, unknown>) =>
     editing.value
-      ? api<Snippet>(`/api/v1/snippets/${editing.value.id}`, { method: 'PATCH', body: data })
-      : api<Snippet>('/api/v1/snippets', { method: 'POST', body: data }),
+      ? api<Snippet>(`/api/v1/snippets/${editing.value.id}`, {
+          method: "PATCH",
+          body: data,
+        })
+      : api<Snippet>("/api/v1/snippets", { method: "POST", body: data }),
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['snippets'] })
-    success(editing.value ? 'Snippet updated' : 'Snippet saved')
-    closeForm()
+    queryClient.invalidateQueries({ queryKey: ["snippets"] });
+    success(editing.value ? "Snippet updated" : "Snippet saved");
+    closeForm();
   },
-  onError: () => error('Could not save snippet'),
-})
+  onError: () => error("Could not save snippet"),
+});
 
 const deleteSnippet = useMutation({
-  mutationFn: (s: Snippet) => api(`/api/v1/snippets/${s.id}`, { method: 'DELETE' }),
+  mutationFn: (s: Snippet) =>
+    api(`/api/v1/snippets/${s.id}`, { method: "DELETE" }),
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['snippets'] })
-    success('Snippet deleted')
+    queryClient.invalidateQueries({ queryKey: ["snippets"] });
+    success("Snippet deleted");
   },
-})
+});
 
 async function confirmDelete(s: Snippet) {
   const ok = await confirm({
     title: `Delete “${s.title}”?`,
-    message: 'This snippet will be permanently removed.',
-    confirmLabel: 'Delete',
+    message: "This snippet will be permanently removed.",
+    confirmLabel: "Delete",
     danger: true,
-  })
-  if (ok) deleteSnippet.mutate(s)
+  });
+  if (ok) deleteSnippet.mutate(s);
 }
 </script>
 
@@ -92,26 +100,52 @@ async function confirmDelete(s: Snippet) {
         <h1 class="text-2xl font-semibold tracking-tight text-ink">Snippets</h1>
         <p class="mt-1 text-sm text-ink-muted">Your personal code library.</p>
       </div>
-      <UiButton variant="primary" icon="plus" @click="openCreate">New snippet</UiButton>
+      <UiButton variant="primary" icon="plus" @click="openCreate"
+        >New snippet</UiButton
+      >
     </header>
 
     <div class="mb-6 flex flex-wrap gap-3">
       <div class="relative">
-        <UiIcon name="code" :size="15" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
-        <input v-model="languageFilter" type="text" placeholder="Language…" class="field-input w-40 pl-9">
+        <UiIcon
+          name="code"
+          :size="15"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+        />
+        <input
+          v-model="languageFilter"
+          type="text"
+          placeholder="Language…"
+          class="field-input w-40 pl-9"
+        />
       </div>
       <div class="relative">
-        <UiIcon name="tag" :size="15" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
-        <input v-model="tagFilter" type="text" placeholder="Tag…" class="field-input w-40 pl-9">
+        <UiIcon
+          name="tag"
+          :size="15"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+        />
+        <input
+          v-model="tagFilter"
+          type="text"
+          placeholder="Tag…"
+          class="field-input w-40 pl-9"
+        />
       </div>
       <select v-model="projectFilter" class="field-input w-48">
         <option :value="null">All projects</option>
-        <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
+        <option v-for="p in projects ?? []" :key="p.id" :value="p.id">
+          {{ p.name }}
+        </option>
       </select>
     </div>
 
     <div v-if="isPending" class="flex flex-col gap-4">
-      <div v-for="i in 4" :key="i" class="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      >
         <div class="flex items-center gap-2">
           <UiSkeleton class="size-8 rounded-lg" />
           <UiSkeleton class="h-4 w-40" />
@@ -126,7 +160,9 @@ async function confirmDelete(s: Snippet) {
       title="No snippets yet"
       description="Save reusable code so you never hunt for it again."
     >
-      <UiButton variant="primary" icon="plus" @click="openCreate">Add a snippet</UiButton>
+      <UiButton variant="primary" icon="plus" @click="openCreate"
+        >Add a snippet</UiButton
+      >
     </UiEmptyState>
 
     <UiEmptyState
@@ -136,7 +172,12 @@ async function confirmDelete(s: Snippet) {
       description="Try clearing your filters."
     />
 
-    <TransitionGroup v-else tag="div" name="fade" class="stagger flex flex-col gap-4">
+    <TransitionGroup
+      v-else
+      tag="div"
+      name="fade"
+      class="stagger flex flex-col gap-4"
+    >
       <SnippetCard
         v-for="(s, i) in snippets"
         :key="s.id"
@@ -151,7 +192,9 @@ async function confirmDelete(s: Snippet) {
       :open="showForm"
       width="max-w-2xl"
       :title="editing ? 'Edit snippet' : 'New snippet'"
-      :subtitle="editing ? 'Update your saved code.' : 'Save a reusable piece of code.'"
+      :subtitle="
+        editing ? 'Update your saved code.' : 'Save a reusable piece of code.'
+      "
       @close="closeForm"
     >
       <SnippetForm

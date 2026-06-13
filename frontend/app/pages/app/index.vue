@@ -6,6 +6,7 @@ import type { Project } from '~/types/api'
 definePageMeta({ middleware: 'auth', layout: 'app' })
 
 const { api } = useAuth()
+const { uploadProjectImage } = useCloudinaryUpload()
 const queryClient = useQueryClient()
 const { confirm } = useConfirm()
 const { success, error } = useToast()
@@ -42,19 +43,25 @@ function closeForm() {
   editing.value = null
 }
 
-async function uploadImage(projectId: number, imageFile: File) {
-  const form = new FormData()
-  form.append('file', imageFile)
-  await api(`/api/v1/projects/${projectId}/image`, { method: 'POST', body: form })
-}
-
 const saveProject = useMutation({
   mutationFn: async (data: { name: string; description: string; color: string; image?: File | null }) => {
     const { image, ...fields } = data
-    const project = editing.value
+
+    // Create or update the project record first (gets us the project.id we need for the upload key).
+    let project = editing.value
       ? await api<Project>(`/api/v1/projects/${editing.value.id}`, { method: 'PATCH', body: fields })
       : await api<Project>('/api/v1/projects', { method: 'POST', body: fields })
-    if (image) await uploadImage(project.id, image)
+
+    if (image) {
+      // Upload directly to Cloudinary (browser → CDN, no Nitro proxy involved).
+      const imageUrl = await uploadProjectImage(project.id, image)
+      // Persist the CDN URL on the project record.
+      project = await api<Project>(`/api/v1/projects/${project.id}`, {
+        method: 'PATCH',
+        body: { image_url: imageUrl },
+      })
+    }
+
     return project
   },
   onSuccess: () => {

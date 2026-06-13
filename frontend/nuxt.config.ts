@@ -13,11 +13,9 @@ export default defineNuxtConfig({
   },
   vite: { plugins: [tailwindcss()] },
   routeRules: {
-    // public pages: prerendered (fast first paint, SEO-safe, no user data)
     '/': { prerender: true },
     '/login': { prerender: true },
     '/register': { prerender: true },
-    // authenticated app: client-side rendered (avoids SSR JWT juggling)
     '/app/**': { ssr: false },
     ...(apiProxyTarget ? { '/api/**': { proxy: `${apiProxyTarget}/api/**` } } : {}),
   },
