@@ -21,3 +21,19 @@ class UserRepository:
 
     async def get_by_id(self, user_id: int) -> User | None:
         return await self.session.get(User, user_id)
+
+    async def list_all(self, *, limit: int = 100, offset: int = 0) -> list[User]:
+        res = await self.session.execute(
+            select(User).order_by(User.created_at).limit(limit).offset(offset)
+        )
+        return list(res.scalars().all())
+
+    async def update(self, user_id: int, **kwargs) -> User | None:
+        user = await self.get_by_id(user_id)
+        if user is None:
+            return None
+        for key, val in kwargs.items():
+            setattr(user, key, val)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user

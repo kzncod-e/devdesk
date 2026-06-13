@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: devdesk
       POSTGRES_PASSWORD: devdesk
       POSTGRES_DB: devdesk
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,23 +17,44 @@ services:
 
   mongo:
     image: mongo:7
+    ports:
+      - "27017:27017"
     volumes:
       - mongodata:/data/db
 
   api:
     build: ./backend
+
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
     environment:
       DATABASE_URL: postgresql+asyncpg://devdesk:devdesk@postgres:5432/devdesk
       MONGO_URL: mongodb://mongo:27017
       JWT_SECRET: dev-only-secret-change-me
     ports:
       - "8000:8000"
+    volumes:
+      - uploads_data:/app/static/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
   nuxt:
+    # Runs the production build from the image (node .output/server/index.mjs).
+    # The frontend is normally developed on the host (npm run dev); this service
+    # serves the built app as part of the full stack. `--watch` rebuilds on change.
     build: ./frontend
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend
+          ignore:
+            - node_modules/
+            - .nuxt/
+            - .output/
     ports:
       - "3000:3000"
     depends_on:
@@ -40,3 +63,4 @@ services:
 volumes:
   pgdata:
   mongodata:
+  uploads_data:

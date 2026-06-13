@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
 import type { Project, Snippet } from '~/types/api'
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'auth', layout: 'app' })
 
 const { api } = useAuth()
 const queryClient = useQueryClient()
+const { confirm } = useConfirm()
+const { success, error } = useToast()
 
 const languageFilter = ref('')
 const tagFilter = ref('')
@@ -31,11 +33,22 @@ const { data: snippets, isPending } = useQuery({
   queryFn: () => api<Snippet[]>(`/api/v1/snippets${filters.value}`),
 })
 
+const hasFilters = computed(
+  () => !!languageFilter.value || !!tagFilter.value || projectFilter.value !== null,
+)
+
 const showForm = ref(false)
 const editing = ref<Snippet | null>(null)
 
-function invalidate() {
-  queryClient.invalidateQueries({ queryKey: ['snippets'] })
+function openCreate() {
+  editing.value = null
+  showForm.value = true
+}
+function startEdit(s: Snippet) {
+  editing.value = s
+  showForm.value = true
+}
+function closeForm() {
   showForm.value = false
   editing.value = null
 }
@@ -45,84 +58,111 @@ const saveSnippet = useMutation({
     editing.value
       ? api<Snippet>(`/api/v1/snippets/${editing.value.id}`, { method: 'PATCH', body: data })
       : api<Snippet>('/api/v1/snippets', { method: 'POST', body: data }),
-  onSuccess: invalidate,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    success(editing.value ? 'Snippet updated' : 'Snippet saved')
+    closeForm()
+  },
+  onError: () => error('Could not save snippet'),
 })
 
 const deleteSnippet = useMutation({
   mutationFn: (s: Snippet) => api(`/api/v1/snippets/${s.id}`, { method: 'DELETE' }),
-  onSuccess: invalidate,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    success('Snippet deleted')
+  },
 })
 
-function startEdit(s: Snippet) {
-  editing.value = s
-  showForm.value = true
-}
-
-function confirmDelete(s: Snippet) {
-  if (window.confirm(`Delete snippet "${s.title}"?`)) deleteSnippet.mutate(s)
+async function confirmDelete(s: Snippet) {
+  const ok = await confirm({
+    title: `Delete “${s.title}”?`,
+    message: 'This snippet will be permanently removed.',
+    confirmLabel: 'Delete',
+    danger: true,
+  })
+  if (ok) deleteSnippet.mutate(s)
 }
 </script>
 
 <template>
-  <div>
-    <AppHeader />
-    <main class="mx-auto max-w-4xl p-6">
-      <div class="mb-6 flex flex-wrap items-center gap-3">
-        <h1 class="text-2xl font-bold">Snippets</h1>
-        <button
-          class="ml-auto rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
-          @click="editing = null; showForm = true"
-        >
-          New snippet
-        </button>
+  <div class="mx-auto max-w-5xl px-5 py-8 md:px-8">
+    <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-ink">Snippets</h1>
+        <p class="mt-1 text-sm text-ink-muted">Your personal code library.</p>
       </div>
+      <UiButton variant="primary" icon="plus" @click="openCreate">New snippet</UiButton>
+    </header>
 
-      <div class="mb-6 flex flex-wrap gap-3 text-sm">
-        <input
-          v-model="languageFilter"
-          type="text"
-          placeholder="Filter by language…"
-          class="rounded-lg border border-slate-300 px-3 py-2"
-        >
-        <input
-          v-model="tagFilter"
-          type="text"
-          placeholder="Filter by tag…"
-          class="rounded-lg border border-slate-300 px-3 py-2"
-        >
-        <select
-          v-model="projectFilter"
-          class="rounded-lg border border-slate-300 px-3 py-2"
-        >
-          <option :value="null">All projects</option>
-          <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
+    <div class="mb-6 flex flex-wrap gap-3">
+      <div class="relative">
+        <UiIcon name="code" :size="15" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+        <input v-model="languageFilter" type="text" placeholder="Language…" class="field-input w-40 pl-9">
       </div>
+      <div class="relative">
+        <UiIcon name="tag" :size="15" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+        <input v-model="tagFilter" type="text" placeholder="Tag…" class="field-input w-40 pl-9">
+      </div>
+      <select v-model="projectFilter" class="field-input w-48">
+        <option :value="null">All projects</option>
+        <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
+      </select>
+    </div>
 
+    <div v-if="isPending" class="flex flex-col gap-4">
+      <div v-for="i in 4" :key="i" class="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div class="flex items-center gap-2">
+          <UiSkeleton class="size-8 rounded-lg" />
+          <UiSkeleton class="h-4 w-40" />
+        </div>
+        <UiSkeleton class="h-24 w-full rounded-lg" />
+      </div>
+    </div>
+
+    <UiEmptyState
+      v-else-if="!snippets?.length && !hasFilters"
+      icon="code"
+      title="No snippets yet"
+      description="Save reusable code so you never hunt for it again."
+    >
+      <UiButton variant="primary" icon="plus" @click="openCreate">Add a snippet</UiButton>
+    </UiEmptyState>
+
+    <UiEmptyState
+      v-else-if="!snippets?.length"
+      icon="search"
+      title="No snippets found"
+      description="Try clearing your filters."
+    />
+
+    <TransitionGroup v-else tag="div" name="fade" class="stagger flex flex-col gap-4">
+      <SnippetCard
+        v-for="(s, i) in snippets"
+        :key="s.id"
+        :snippet="s"
+        :style="{ '--i': i }"
+        @edit="startEdit(s)"
+        @delete="confirmDelete(s)"
+      />
+    </TransitionGroup>
+
+    <UiModal
+      :open="showForm"
+      width="max-w-2xl"
+      :title="editing ? 'Edit snippet' : 'New snippet'"
+      :subtitle="editing ? 'Update your saved code.' : 'Save a reusable piece of code.'"
+      @close="closeForm"
+    >
       <SnippetForm
         v-if="showForm"
         :key="editing?.id ?? 'new'"
         :snippet="editing"
         :projects="projects ?? []"
         :busy="saveSnippet.isPending.value"
-        class="mb-6"
         @submit="saveSnippet.mutate($event)"
-        @cancel="showForm = false; editing = null"
+        @cancel="closeForm"
       />
-
-      <p v-if="isPending" class="text-slate-500">Loading snippets…</p>
-      <p v-else-if="!snippets?.length" class="text-slate-500">
-        No snippets found.
-      </p>
-      <div v-else class="flex flex-col gap-4">
-        <SnippetCard
-          v-for="s in snippets"
-          :key="s.id"
-          :snippet="s"
-          @edit="startEdit(s)"
-          @delete="confirmDelete(s)"
-        />
-      </div>
-    </main>
+    </UiModal>
   </div>
 </template>

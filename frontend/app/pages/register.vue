@@ -24,52 +24,48 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-8">
-    <h1 class="mb-6 text-2xl font-bold">Register</h1>
-    <form class="flex flex-col gap-4" @submit.prevent="submit">
-      <label class="flex flex-col gap-1 text-sm font-medium">
-        Name
-        <input
-          v-model="name"
-          type="text"
-          required
-          autocomplete="name"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-      </label>
-      <label class="flex flex-col gap-1 text-sm font-medium">
-        Email
-        <input
-          v-model="email"
-          type="email"
-          required
-          autocomplete="email"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-      </label>
-      <label class="flex flex-col gap-1 text-sm font-medium">
-        Password
-        <input
-          v-model="password"
-          type="password"
-          required
-          minlength="8"
-          autocomplete="new-password"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-      </label>
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-      <button
-        type="submit"
-        :disabled="busy"
-        class="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {{ busy ? 'Creating account…' : 'Create account' }}
-      </button>
-    </form>
-    <p class="mt-4 text-sm text-slate-600">
-      Already have an account?
-      <NuxtLink to="/login" class="font-medium text-indigo-600 hover:underline">Log in</NuxtLink>
-    </p>
-  </main>
+  <div class="relative grid min-h-screen place-items-center overflow-hidden bg-canvas px-4 text-ink">
+    <div class="bg-grid pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" aria-hidden="true" />
+    <div class="pointer-events-none absolute left-1/2 top-1/3 h-72 w-96 -translate-x-1/2 rounded-full bg-accent-soft blur-3xl" aria-hidden="true" />
+
+    <div class="enter-rise relative w-full max-w-sm">
+      <NuxtLink to="/" class="mb-6 flex items-center justify-center gap-2.5">
+        <span class="grid size-9 place-items-center rounded-xl bg-accent text-accent-fg shadow-sm">
+          <UiIcon name="layers" :size="19" />
+        </span>
+        <span class="text-lg font-semibold tracking-tight">DevDesk</span>
+      </NuxtLink>
+
+      <div class="rounded-2xl border border-line bg-surface p-7 shadow-card">
+        <h1 class="text-xl font-semibold tracking-tight">Create your workspace</h1>
+        <p class="mt-1 text-sm text-ink-muted">Start organizing in seconds.</p>
+
+        <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
+          <div class="flex flex-col gap-1.5">
+            <label class="field-label">Name</label>
+            <input v-model="name" type="text" required autocomplete="name" placeholder="Ada Lovelace" class="field-input">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="field-label">Email</label>
+            <input v-model="email" type="email" required autocomplete="email" placeholder="you@dev.com" class="field-input">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="field-label">Password</label>
+            <input v-model="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" class="field-input">
+          </div>
+          <Transition name="fade">
+            <p v-if="error" class="flex items-center gap-1.5 text-sm text-danger">
+              <UiIcon name="x" :size="14" /> {{ error }}
+            </p>
+          </Transition>
+          <UiButton variant="primary" type="submit" size="lg" block :loading="busy">Create account</UiButton>
+        </form>
+      </div>
+
+      <p class="mt-5 text-center text-sm text-ink-muted">
+        Already have an account?
+        <NuxtLink to="/login" class="font-medium text-accent hover:underline">Log in</NuxtLink>
+      </p>
+    </div>
+  </div>
 </template>

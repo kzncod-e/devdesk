@@ -2,6 +2,7 @@ export interface User {
   id: number
   email: string
   name: string
+  role: string
 }
 
 export interface TokenOut {
@@ -18,6 +19,7 @@ export interface Project {
   description: string
   status: ProjectStatus
   color: string
+  image_url: string | null
 }
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done'

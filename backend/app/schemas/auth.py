@@ -28,3 +28,12 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     name: str
+    role: str
+
+
+class ProfilePatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class UserRolePatch(BaseModel):
+    role: str = Field(pattern=r"^(admin|manager|member)$")

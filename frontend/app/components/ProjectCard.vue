@@ -1,55 +1,89 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import UiBadge from '~/components/UiBadge.vue'
 import type { Project } from '~/types/api'
 
-defineProps<{ project: Project }>()
+const props = defineProps<{ project: Project }>()
 defineEmits<{
   open: []
   edit: []
   archive: []
   delete: []
 }>()
+
+const isActive = computed(() => props.project.status === 'active')
 </script>
 
 <template>
-  <article class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-    <header class="flex items-center gap-2">
-      <span
-        class="size-3 shrink-0 rounded-full"
-        :style="{ backgroundColor: project.color }"
-        aria-hidden="true"
-      />
-      <h2 class="flex-1 truncate text-lg font-semibold">{{ project.name }}</h2>
-      <UiBadge :tone="project.status === 'active' ? 'green' : 'gray'">
-        {{ project.status }}
-      </UiBadge>
-    </header>
-    <p class="line-clamp-2 min-h-10 text-sm text-slate-600">{{ project.description }}</p>
-    <footer class="flex gap-2 text-sm">
-      <button
-        class="rounded-lg bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700"
-        @click="$emit('open')"
+  <article
+    class="group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-card border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
+    @click="$emit('open')"
+  >
+    <!-- Cover image or accent bar -->
+    <div v-if="project.image_url" class="relative h-24 overflow-hidden">
+      <img
+        :src="project.image_url"
+        :alt="project.name"
+        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       >
-        Open board
-      </button>
-      <button
-        class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100"
-        @click="$emit('edit')"
-      >
-        Edit
-      </button>
-      <button
-        class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100"
-        @click="$emit('archive')"
-      >
-        {{ project.status === 'active' ? 'Archive' : 'Unarchive' }}
-      </button>
-      <button
-        class="ml-auto rounded-lg px-3 py-1.5 text-red-600 hover:bg-red-50"
-        @click="$emit('delete')"
-      >
-        Delete
-      </button>
-    </footer>
+      <div class="absolute inset-0 bg-linear-to-b from-transparent to-surface/60" />
+    </div>
+    <span
+      v-else
+      class="pointer-events-none absolute inset-x-0 -top-px h-1 opacity-80"
+      :style="{ background: `linear-gradient(90deg, ${project.color}, transparent)` }"
+      aria-hidden="true"
+    />
+
+    <div :class="['flex flex-col gap-4', project.image_url ? 'px-5 pb-5' : 'p-5 pt-4']">
+      <header class="flex items-start gap-3">
+        <span
+          class="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg text-sm font-semibold"
+          :style="{ backgroundColor: `${project.color}1a`, color: project.color }"
+          aria-hidden="true"
+        >
+          <UiIcon name="folder" :size="18" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate text-[15px] font-semibold text-ink">{{ project.name }}</h2>
+          <UiBadge :tone="isActive ? 'green' : 'gray'" dot class="mt-1">
+            {{ project.status }}
+          </UiBadge>
+        </div>
+
+        <!-- contextual actions: fade in on hover, but stay accessible -->
+        <div
+          class="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100"
+          @click.stop
+        >
+          <button type="button" class="icon-btn" aria-label="Edit project" @click="$emit('edit')">
+            <UiIcon name="edit" :size="15" />
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            :aria-label="isActive ? 'Archive project' : 'Unarchive project'"
+            @click="$emit('archive')"
+          >
+            <UiIcon :name="isActive ? 'archive' : 'unarchive'" :size="15" />
+          </button>
+          <button type="button" class="icon-btn icon-btn-danger" aria-label="Delete project" @click="$emit('delete')">
+            <UiIcon name="trash" :size="15" />
+          </button>
+        </div>
+      </header>
+
+      <p class="line-clamp-2 min-h-10 text-sm text-ink-muted">
+        {{ project.description || 'No description yet.' }}
+      </p>
+
+      <footer class="mt-auto flex items-center gap-1.5 text-sm font-medium text-accent">
+        <button class="inline-flex items-center gap-1.5" @click.stop="$emit('open')">
+          Open board
+          <UiIcon name="chevron" :size="15" class="transition-transform duration-200 group-hover:translate-x-0.5" />
+        </button>
+      </footer>
+    </div>
   </article>
 </template>

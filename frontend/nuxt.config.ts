@@ -8,6 +8,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-13',
   devtools: { enabled: false },
   css: ['~/assets/css/main.css'],
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+  },
   vite: { plugins: [tailwindcss()] },
   routeRules: {
     // public pages: prerendered (fast first paint, SEO-safe, no user data)

@@ -39,83 +39,53 @@ function submit() {
 </script>
 
 <template>
-  <form
-    class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-    @submit.prevent="submit"
-  >
-    <h2 class="font-semibold">{{ props.snippet ? 'Edit snippet' : 'New snippet' }}</h2>
+  <form class="flex flex-col gap-5" @submit.prevent="submit">
     <div class="flex gap-4">
-      <label class="flex flex-1 flex-col gap-1 text-sm font-medium">
-        Title
-        <input
-          v-model="title"
-          type="text"
-          required
-          maxlength="200"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-      </label>
-      <label class="flex w-44 flex-col gap-1 text-sm font-medium">
-        Language
-        <input
-          v-model="language"
-          type="text"
-          required
-          maxlength="50"
-          placeholder="typescript"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-      </label>
+      <div class="flex flex-1 flex-col gap-1.5">
+        <label class="field-label">Title</label>
+        <input v-model="title" type="text" required maxlength="200" placeholder="Snippet title" class="field-input">
+      </div>
+      <div class="flex w-40 flex-col gap-1.5">
+        <label class="field-label">Language</label>
+        <input v-model="language" type="text" required maxlength="50" placeholder="typescript" class="field-input">
+      </div>
     </div>
-    <label class="flex flex-col gap-1 text-sm font-medium">
-      Code
+
+    <div class="flex flex-col gap-1.5">
+      <label class="field-label">Code</label>
       <textarea
         v-model="code"
-        rows="8"
+        rows="10"
         required
         spellcheck="false"
-        class="rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs font-normal"
+        placeholder="Paste your code…"
+        class="field-input resize-none rounded-lg bg-surface-2 font-mono text-xs leading-relaxed"
       />
-    </label>
-    <div class="flex gap-4">
-      <label class="flex flex-1 flex-col gap-1 text-sm font-medium">
-        Tags
-        <TagInput v-model="tags" />
-      </label>
-      <label class="flex w-56 flex-col gap-1 text-sm font-medium">
-        Project
-        <select
-          v-model="projectId"
-          class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-        >
-          <option :value="null">— none —</option>
-          <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
-      </label>
     </div>
-    <label class="flex flex-col gap-1 text-sm font-medium">
-      Notes
-      <textarea
-        v-model="notes"
-        rows="2"
-        class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
-      />
-    </label>
-    <div class="flex gap-2">
-      <button
-        type="submit"
-        :disabled="busy"
-        class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {{ props.snippet ? 'Save' : 'Create' }}
-      </button>
-      <button
-        type="button"
-        class="rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-100"
-        @click="emit('cancel')"
-      >
-        Cancel
-      </button>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="field-label">Tags</label>
+      <TagInput v-model="tags" />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="field-label">Project</label>
+      <select v-model="projectId" class="field-input">
+        <option :value="null">— none —</option>
+        <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="field-label">Notes</label>
+      <textarea v-model="notes" rows="2" placeholder="Optional context" class="field-input resize-none" />
+    </div>
+
+    <div class="flex justify-end gap-2 pt-4">
+      <UiButton variant="ghost" type="button" @click="emit('cancel')">Cancel</UiButton>
+      <UiButton variant="primary" type="submit" :loading="busy" icon="check">
+        {{ props.snippet ? 'Save changes' : 'Create snippet' }}
+      </UiButton>
     </div>
   </form>
 </template>

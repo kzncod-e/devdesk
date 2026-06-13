@@ -15,6 +15,7 @@ class Project(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="active")  # active|archived
     color: Mapped[str] = mapped_column(String(7), default="#6366f1")
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -6,6 +6,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.core.errors import ForbiddenError
 from app.db.mongo import get_mongo_db
 from app.db.postgres import get_session
 from app.repositories.bookmark_repo import BookmarkRepository
@@ -19,6 +20,7 @@ from app.services.project_service import ProjectService
 from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
 from app.services.task_service import TaskService
+from app.services.user_service import UserService
 
 bearer = HTTPBearer(auto_error=True)
 
@@ -77,8 +79,24 @@ def get_search_service(session: Session, mongo_db: MongoDb) -> SearchService:
     )
 
 
+def get_user_service(session: Session) -> UserService:
+    return UserService(UserRepository(session))
+
+
 async def get_current_user(
     creds: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
 ):
     return await auth.get_user(creds.credentials)
+
+
+async def get_admin_user(user=Depends(get_current_user)):
+    if user.role != "admin":
+        raise ForbiddenError("Admin access required")
+    return user
+
+
+async def get_manager_or_admin_user(user=Depends(get_current_user)):
+    if user.role not in ("admin", "manager"):
+        raise ForbiddenError("Manager or admin access required")
+    return user

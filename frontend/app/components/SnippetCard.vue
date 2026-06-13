@@ -1,42 +1,59 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import CodeBlock from '~/components/CodeBlock.vue'
-import UiBadge from '~/components/UiBadge.vue'
 import type { Snippet } from '~/types/api'
 
 defineProps<{ snippet: Snippet }>()
 defineEmits<{ edit: []; delete: [] }>()
+
+const expanded = ref(false)
 </script>
 
 <template>
-  <article class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+  <article
+    class="group flex flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition-all duration-200 hover:border-line-strong hover:shadow-card-hover"
+  >
     <header class="flex items-center gap-2">
-      <h2 class="flex-1 truncate font-semibold">{{ snippet.title }}</h2>
-      <UiBadge tone="indigo">{{ snippet.language }}</UiBadge>
+      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+        <UiIcon name="code" :size="16" />
+      </span>
+      <h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{{ snippet.title }}</h2>
+      <div
+        class="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100"
+      >
+        <button type="button" class="icon-btn" aria-label="Edit snippet" @click="$emit('edit')">
+          <UiIcon name="edit" :size="15" />
+        </button>
+        <button type="button" class="icon-btn icon-btn-danger" aria-label="Delete snippet" @click="$emit('delete')">
+          <UiIcon name="trash" :size="15" />
+        </button>
+      </div>
     </header>
-    <CodeBlock :code="snippet.code" :language="snippet.language" />
-    <p v-if="snippet.notes" class="text-sm text-slate-600">{{ snippet.notes }}</p>
-    <footer class="flex items-center gap-2">
+
+    <button type="button" class="text-left" @click="expanded = !expanded">
+      <CodeBlock :code="snippet.code" :language="snippet.language" collapsible :expanded="expanded" />
+    </button>
+
+    <button
+      type="button"
+      class="self-start text-xs font-medium text-ink-subtle transition hover:text-accent"
+      @click="expanded = !expanded"
+    >
+      {{ expanded ? 'Show less' : 'Show more' }}
+    </button>
+
+    <p v-if="snippet.notes" class="text-sm text-ink-muted">{{ snippet.notes }}</p>
+
+    <footer v-if="snippet.tags.length" class="flex flex-wrap items-center gap-1.5">
       <span
         v-for="tag in snippet.tags"
         :key="tag"
-        class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+        class="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-muted"
       >
+        <UiIcon name="tag" :size="11" class="text-ink-subtle" />
         {{ tag }}
       </span>
-      <div class="ml-auto flex gap-2 text-sm">
-        <button
-          class="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-100"
-          @click="$emit('edit')"
-        >
-          Edit
-        </button>
-        <button
-          class="rounded-lg px-3 py-1 text-red-600 hover:bg-red-50"
-          @click="$emit('delete')"
-        >
-          Delete
-        </button>
-      </div>
     </footer>
   </article>
 </template>

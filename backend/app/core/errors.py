@@ -20,3 +20,13 @@ class UnauthorizedError(AppError):
 class NotFoundError(AppError):
     status_code = 404
     code = "not_found"
+
+
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+
+
+class UnprocessableError(AppError):
+    status_code = 422
+    code = "unprocessable"
