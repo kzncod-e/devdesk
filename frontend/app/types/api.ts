@@ -11,6 +11,34 @@ export interface TokenOut {
   token_type: string
 }
 
+export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'member' | 'viewer'
+
+export interface Workspace {
+  id: number
+  name: string
+  slug: string
+  plan: string
+  role: WorkspaceRole
+}
+
+export interface Member {
+  user_id: number
+  name: string
+  email: string
+  avatar_url: string | null
+  role: WorkspaceRole
+  status: string
+}
+
+export interface Invite {
+  id: number
+  email: string
+  role: WorkspaceRole
+  expires_at: string
+  accepted_at: string | null
+  token?: string
+}
+
 export type ProjectStatus = 'active' | 'archived'
 
 export interface Project {

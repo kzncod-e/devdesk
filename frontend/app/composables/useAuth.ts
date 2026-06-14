@@ -7,6 +7,8 @@ export function useAuth() {
   // httpOnly cookie scoped to /api/v1/auth that the browser manages
   const token = useState<string | null>('auth:access', () => null)
   const user = useState<User | null>('auth:user', () => null)
+  // Active workspace id — managed by useWorkspace, read here to scope every request.
+  const workspaceId = useState<number | null>('workspace:current', () => null)
 
   async function login(email: string, password: string): Promise<void> {
     const res = await $fetch<TokenOut>('/api/v1/auth/login', {
@@ -54,6 +56,7 @@ export function useAuth() {
         headers: {
           ...(opts?.headers ?? {}),
           ...(token.value ? { Authorization: `Bearer ${token.value}` } : {}),
+          ...(workspaceId.value ? { 'X-Workspace-Id': String(workspaceId.value) } : {}),
         },
       } as FetchOptions)
     try {

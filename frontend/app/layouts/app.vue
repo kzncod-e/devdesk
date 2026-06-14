@@ -10,6 +10,40 @@ const { user, api, logout } = useAuth();
 const { mode, toggle: toggleTheme } = useTheme();
 const { show: showPalette } = useCommandPalette();
 const { isReady, hasOnboarded, markReady } = useAppReady();
+const { success, error: toastError } = useToast();
+const {
+  workspaces,
+  workspaceId,
+  current: currentWorkspace,
+  load: loadWorkspaces,
+  setCurrent: setWorkspace,
+  createWorkspace,
+} = useWorkspace();
+
+// Load the user's workspaces once on entry (CSR-only shell).
+onMounted(() => {
+  loadWorkspaces().catch(() => {});
+});
+
+// New-workspace modal
+const showCreateWorkspace = ref(false);
+const newWorkspaceName = ref("");
+const creatingWorkspace = ref(false);
+async function onCreateWorkspace() {
+  if (!newWorkspaceName.value.trim()) return;
+  creatingWorkspace.value = true;
+  try {
+    await createWorkspace(newWorkspaceName.value.trim());
+    success("Workspace created");
+    showCreateWorkspace.value = false;
+    newWorkspaceName.value = "";
+    navigateTo("/app");
+  } catch {
+    toastError("Could not create workspace");
+  } finally {
+    creatingWorkspace.value = false;
+  }
+}
 
 const showSplash = ref(!hasOnboarded.value);
 
@@ -92,14 +126,49 @@ const initials = computed(() =>
     <aside
       class="hidden w-60 shrink-0 flex-col border-r border-line bg-surface/60 px-3 py-4 md:flex"
     >
-      <NuxtLink to="/app" class="mb-6 flex items-center gap-2.5 px-2">
-        <span
-          class="grid size-8 place-items-center rounded-lg bg-accent text-accent-fg shadow-sm"
+      <UiMenu align="left" class="mb-5 block">
+        <template #trigger>
+          <button
+            class="flex w-full items-center gap-2.5 rounded-lg border border-line bg-surface px-2.5 py-2 text-left shadow-sm transition hover:border-line-strong"
+            aria-label="Switch workspace"
+          >
+            <span
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-fg shadow-sm"
+            >
+              <UiIcon name="layers" :size="18" />
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-semibold">{{
+                currentWorkspace?.name ?? "DevDesk"
+              }}</span>
+              <span class="block truncate text-[11px] capitalize text-ink-subtle">{{
+                currentWorkspace?.role ?? "workspace"
+              }}</span>
+            </span>
+            <UiIcon name="chevronDown" :size="15" class="shrink-0 text-ink-subtle" />
+          </button>
+        </template>
+        <p
+          class="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle"
         >
-          <UiIcon name="layers" :size="18" />
-        </span>
-        <span class="text-[15px] font-semibold tracking-tight">DevDesk</span>
-      </NuxtLink>
+          Workspaces
+        </p>
+        <UiMenuItem
+          v-for="w in workspaces"
+          :key="w.id"
+          :icon="w.id === workspaceId ? 'check' : 'folder'"
+          @click="setWorkspace(w.id)"
+        >
+          {{ w.name }}
+        </UiMenuItem>
+        <div class="my-1 h-px bg-line" />
+        <UiMenuItem icon="plus" @click="showCreateWorkspace = true"
+          >New workspace</UiMenuItem
+        >
+        <UiMenuItem icon="users" @click="navigateTo('/app/settings')"
+          >Members &amp; settings</UiMenuItem
+        >
+      </UiMenu>
 
       <button
         class="mb-4 flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-subtle shadow-sm transition hover:border-line-strong hover:text-ink-muted"
@@ -326,6 +395,41 @@ const initials = computed(() =>
         <slot />
       </main>
     </div>
+
+    <UiModal
+      :open="showCreateWorkspace"
+      title="New workspace"
+      subtitle="Group projects, snippets and bookmarks for a team."
+      @close="showCreateWorkspace = false"
+    >
+      <form class="flex flex-col gap-4" @submit.prevent="onCreateWorkspace">
+        <div>
+          <label class="field-label" for="ws-name">Name</label>
+          <input
+            id="ws-name"
+            v-model="newWorkspaceName"
+            class="field-input mt-1"
+            placeholder="Acme Inc"
+            maxlength="200"
+          />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <UiButton
+            variant="ghost"
+            type="button"
+            @click="showCreateWorkspace = false"
+            >Cancel</UiButton
+          >
+          <UiButton
+            variant="primary"
+            type="submit"
+            :loading="creatingWorkspace"
+            :disabled="!newWorkspaceName.trim()"
+            >Create workspace</UiButton
+          >
+        </div>
+      </form>
+    </UiModal>
 
     <CommandPalette />
     <UiToaster />

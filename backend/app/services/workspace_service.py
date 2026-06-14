@@ -118,7 +118,11 @@ class WorkspaceService:
         invite = await self.invites.get_by_hash(_hash_token(token))
         if invite is None or invite.accepted_at is not None:
             raise NotFoundError("Invite not found or already used")
-        if invite.expires_at < datetime.now(timezone.utc):
+        # SQLite (test tier) returns naive datetimes; treat them as UTC.
+        expires_at = invite.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
             raise UnprocessableError("Invite has expired")
         if invite.email.lower() != user.email.lower():
             raise ForbiddenError("This invite was issued to a different email")

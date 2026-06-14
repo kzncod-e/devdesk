@@ -30,13 +30,21 @@ class WorkspaceContext:
 async def get_workspace_context(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-    workspace_id: int = Header(alias="X-Workspace-Id"),
+    workspace_id: int | None = Header(default=None, alias="X-Workspace-Id"),
 ) -> WorkspaceContext:
-    membership = await MembershipRepository(session).get(workspace_id, user.id)
-    if membership is None or membership.status != "active":
-        raise ForbiddenError("Not a member of this workspace")
+    repo = MembershipRepository(session)
+    if workspace_id is None:
+        # No explicit workspace selected — fall back to the user's default.
+        membership = await repo.get_default_for_user(user.id)
+        if membership is None:
+            raise ForbiddenError("No workspace available")
+    else:
+        membership = await repo.get(workspace_id, user.id)
+        if membership is None or membership.status != "active":
+            raise ForbiddenError("Not a member of this workspace")
     return WorkspaceContext(
-        user=user, workspace_id=workspace_id, role=membership.role, membership=membership
+        user=user, workspace_id=membership.workspace_id, role=membership.role,
+        membership=membership,
     )
 
 

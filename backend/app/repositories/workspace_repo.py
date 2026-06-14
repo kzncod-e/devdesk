@@ -55,6 +55,18 @@ class MembershipRepository:
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
+    async def get_default_for_user(self, user_id: int) -> Membership | None:
+        """The user's fallback workspace when no X-Workspace-Id is supplied —
+        their oldest active membership (typically the personal workspace)."""
+        stmt = (
+            select(Membership)
+            .where(Membership.user_id == user_id, Membership.status == "active")
+            .order_by(Membership.id)
+            .limit(1)
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def list_with_users(self, workspace_id: int) -> list[tuple[Membership, User]]:
         stmt = (
             select(Membership, User)
