@@ -15,18 +15,32 @@ class TokenPair:
 
 class AuthService:
     def __init__(self, user_repo, *, jwt_secret: str, access_minutes: int,
-                 refresh_minutes: int) -> None:
+                 refresh_minutes: int, session=None, workspace_repo=None,
+                 membership_repo=None) -> None:
         self.user_repo = user_repo
         self.jwt_secret = jwt_secret
         self.access_minutes = access_minutes
         self.refresh_minutes = refresh_minutes
+        # Optional: required only for register(), which provisions a workspace.
+        self.session = session
+        self.workspace_repo = workspace_repo
+        self.membership_repo = membership_repo
 
     async def register(self, *, email: str, password: str, name: str):
         if await self.user_repo.get_by_email(email):
             raise ConflictError("Email already registered")
-        return await self.user_repo.create(
+        user = await self.user_repo.create(
             email=email, password_hash=hash_password(password), name=name
         )
+        # Every new user gets a personal workspace they own — otherwise they'd
+        # have nowhere to put projects/snippets/bookmarks.
+        if self.workspace_repo is not None and self.membership_repo is not None:
+            ws = await self.workspace_repo.create(
+                name=f"{name}'s Workspace", slug=f"ws-{user.id}", created_by=user.id
+            )
+            await self.membership_repo.add(workspace_id=ws.id, user_id=user.id, role="owner")
+            await self.session.commit()
+        return user
 
     async def login(self, *, email: str, password: str) -> TokenPair:
         user = await self.user_repo.get_by_email(email)

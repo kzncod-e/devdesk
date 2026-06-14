@@ -6,6 +6,7 @@ from app.db.postgres import Base
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
+from app.repositories.workspace_repo import WorkspaceRepository
 
 
 @pytest.fixture(scope="module")
@@ -27,41 +28,50 @@ async def session(pg_url):
 
 
 @pytest.fixture
-async def users(session):
-    repo = UserRepository(session)
-    alice = await repo.create(email="a@x.y", password_hash="h", name="A")
-    bob = await repo.create(email="b@x.y", password_hash="h", name="B")
-    return alice, bob
+async def spaces(session):
+    users = UserRepository(session)
+    alice = await users.create(email="a@x.y", password_hash="h", name="A")
+    bob = await users.create(email="b@x.y", password_hash="h", name="B")
+    wsrepo = WorkspaceRepository(session)
+    ws_a = await wsrepo.create(name="A", slug="ws-a", created_by=alice.id)
+    ws_b = await wsrepo.create(name="B", slug="ws-b", created_by=bob.id)
+    await session.commit()
+    return (alice, ws_a), (bob, ws_b)
 
 
 @pytest.mark.asyncio
-async def test_project_search_stems_and_scopes(session, users):
-    alice, bob = users
+async def test_project_search_stems_and_scopes(session, spaces):
+    (alice, ws_a), (bob, ws_b) = spaces
     projects = ProjectRepository(session)
-    p1 = await projects.create(owner_id=alice.id, name="Deploy pipeline",
-                               description="CI and VPS deployment work")
-    await projects.create(owner_id=alice.id, name="Cooking blog", description="recipes")
-    await projects.create(owner_id=bob.id, name="Deploy tooling", description="bob's")
+    p1 = await projects.create(workspace_id=ws_a.id, owner_id=alice.id,
+                               name="Deploy pipeline", description="CI and VPS deployment work")
+    await projects.create(workspace_id=ws_a.id, owner_id=alice.id, name="Cooking blog",
+                          description="recipes")
+    await projects.create(workspace_id=ws_b.id, owner_id=bob.id, name="Deploy tooling",
+                          description="bob's")
 
-    hits = await projects.search(alice.id, "deploying", limit=10)
-    assert [p.id for p in hits] == [p1.id]  # stemming + owner scoping
-    assert await projects.search(alice.id, "kubernetes", limit=10) == []
+    hits = await projects.search(ws_a.id, "deploying", limit=10)
+    assert [p.id for p in hits] == [p1.id]  # stemming + workspace scoping
+    assert await projects.search(ws_a.id, "kubernetes", limit=10) == []
 
 
 @pytest.mark.asyncio
-async def test_task_search_matches_title_and_description(session, users):
-    alice, bob = users
+async def test_task_search_matches_title_and_description(session, spaces):
+    (alice, ws_a), (bob, ws_b) = spaces
     projects = ProjectRepository(session)
     tasks = TaskRepository(session)
-    ap = await projects.create(owner_id=alice.id, name="P")
-    bp = await projects.create(owner_id=bob.id, name="P")
+    ap = await projects.create(workspace_id=ws_a.id, owner_id=alice.id, name="P")
+    bp = await projects.create(workspace_id=ws_b.id, owner_id=bob.id, name="P")
 
-    t1 = await tasks.create(project_id=ap.id, title="Configure nginx", position=1024.0)
-    t2 = await tasks.create(project_id=ap.id, title="Write docs",
+    t1 = await tasks.create(project_id=ap.id, workspace_id=ws_a.id,
+                            title="Configure nginx", position=1024.0)
+    t2 = await tasks.create(project_id=ap.id, workspace_id=ws_a.id, title="Write docs",
                             description="document the nginx setup", position=2048.0)
-    await tasks.create(project_id=ap.id, title="Unrelated", position=3072.0)
-    await tasks.create(project_id=bp.id, title="nginx for bob", position=1024.0)
+    await tasks.create(project_id=ap.id, workspace_id=ws_a.id, title="Unrelated",
+                       position=3072.0)
+    await tasks.create(project_id=bp.id, workspace_id=ws_b.id, title="nginx for bob",
+                       position=1024.0)
 
-    hits = await tasks.search(alice.id, "nginx", limit=10)
+    hits = await tasks.search(ws_a.id, "nginx", limit=10)
     assert {t.id for t in hits} == {t1.id, t2.id}
-    assert await tasks.search(bob.id, "docs", limit=10) == []
+    assert await tasks.search(ws_b.id, "docs", limit=10) == []

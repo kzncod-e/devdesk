@@ -9,16 +9,16 @@ class FakeProjectRepo:
         self.items = {}
         self._next = 1
 
-    async def create(self, *, owner_id, name, description="", color="#6366f1"):
-        p = type("P", (), {"id": self._next, "owner_id": owner_id, "name": name,
-                           "description": description, "status": "active", "color": color})()
+    async def create(self, *, workspace_id, owner_id, name, description="", color="#6366f1"):
+        p = type("P", (), {"id": self._next, "workspace_id": workspace_id,
+                           "owner_id": owner_id, "name": name})()
         self.items[p.id] = p
         self._next += 1
         return p
 
-    async def get_for_owner(self, project_id, owner_id):
+    async def get_for_workspace(self, project_id, workspace_id):
         p = self.items.get(project_id)
-        return p if p and p.owner_id == owner_id else None
+        return p if p and p.workspace_id == workspace_id else None
 
 
 class FakeTaskRepo:
@@ -27,9 +27,10 @@ class FakeTaskRepo:
         self.items = {}
         self._next = 1
 
-    async def create(self, *, project_id, title, position, description="",
-                     priority="medium", due_date=None):
-        t = type("T", (), {"id": self._next, "project_id": project_id, "title": title,
+    async def create(self, *, project_id, workspace_id, title, position, description="",
+                     priority="medium", due_date=None, assignees=None):
+        t = type("T", (), {"id": self._next, "project_id": project_id,
+                           "workspace_id": workspace_id, "title": title,
                            "description": description, "status": "todo",
                            "priority": priority, "position": position,
                            "due_date": due_date})()
@@ -42,24 +43,14 @@ class FakeTaskRepo:
                       key=lambda t: t.position)
         return mine[offset:offset + limit]
 
-    async def get_with_owner(self, task_id, owner_id):
+    async def get_in_workspace(self, task_id, workspace_id):
         t = self.items.get(task_id)
-        if t is None:
-            return None
-        p = self.projects.items.get(t.project_id)
-        return t if p and p.owner_id == owner_id else None
+        return t if t and t.workspace_id == workspace_id else None
 
     async def max_position(self, project_id, status):
         positions = [t.position for t in self.items.values()
                      if t.project_id == project_id and t.status == status]
         return max(positions) if positions else None
-
-    async def count_by_status(self, project_id):
-        counts = {}
-        for t in self.items.values():
-            if t.project_id == project_id:
-                counts[t.status] = counts.get(t.status, 0) + 1
-        return counts
 
     async def update(self, task, **fields):
         for k, v in fields.items():
@@ -71,46 +62,51 @@ class FakeTaskRepo:
         del self.items[task.id]
 
 
+class FakeUserRepo:
+    async def get_by_ids(self, user_ids):
+        return []
+
+
 @pytest.fixture
 def env():
     projects = FakeProjectRepo()
     tasks = FakeTaskRepo(projects)
-    return projects, tasks, TaskService(tasks, projects)
+    return projects, tasks, TaskService(tasks, projects, FakeUserRepo())
 
 
 @pytest.mark.asyncio
 async def test_create_appends_position(env):
     projects, tasks, svc = env
-    p = await projects.create(owner_id=1, name="P")
-    t1 = await svc.create(owner_id=1, project_id=p.id, title="A")
-    t2 = await svc.create(owner_id=1, project_id=p.id, title="B")
+    p = await projects.create(workspace_id=1, owner_id=1, name="P")
+    t1 = await svc.create(workspace_id=1, project_id=p.id, title="A")
+    t2 = await svc.create(workspace_id=1, project_id=p.id, title="B")
     assert t1.position == 1024
     assert t2.position == 2048
 
 
 @pytest.mark.asyncio
-async def test_create_and_list_require_owned_project(env):
+async def test_create_and_list_require_project_in_workspace(env):
     projects, tasks, svc = env
-    p = await projects.create(owner_id=1, name="P")
+    p = await projects.create(workspace_id=1, owner_id=1, name="P")
     with pytest.raises(NotFoundError):
-        await svc.create(owner_id=2, project_id=p.id, title="Hax")
+        await svc.create(workspace_id=2, project_id=p.id, title="Hax")
     with pytest.raises(NotFoundError):
-        await svc.list(owner_id=2, project_id=p.id)
-    await svc.create(owner_id=1, project_id=p.id, title="Ok")
-    assert len(await svc.list(owner_id=1, project_id=p.id)) == 1
+        await svc.list(workspace_id=2, project_id=p.id)
+    await svc.create(workspace_id=1, project_id=p.id, title="Ok")
+    assert len(await svc.list(workspace_id=1, project_id=p.id)) == 1
 
 
 @pytest.mark.asyncio
-async def test_update_and_delete_are_owner_scoped(env):
+async def test_update_and_delete_are_workspace_scoped(env):
     projects, tasks, svc = env
-    p = await projects.create(owner_id=1, name="P")
-    t = await svc.create(owner_id=1, project_id=p.id, title="A")
-    moved = await svc.update(t.id, owner_id=1, status="done", position=512.0)
+    p = await projects.create(workspace_id=1, owner_id=1, name="P")
+    t = await svc.create(workspace_id=1, project_id=p.id, title="A")
+    moved = await svc.update(t.id, 1, status="done", position=512.0)
     assert moved.status == "done" and moved.position == 512.0
     with pytest.raises(NotFoundError):
-        await svc.update(t.id, owner_id=2, title="Hax")
+        await svc.update(t.id, 2, title="Hax")
     with pytest.raises(NotFoundError):
-        await svc.delete(t.id, owner_id=2)
-    await svc.delete(t.id, owner_id=1)
+        await svc.delete(t.id, 2)
+    await svc.delete(t.id, 1)
     with pytest.raises(NotFoundError):
-        await svc.update(t.id, owner_id=1, title="gone")
+        await svc.update(t.id, 1, title="gone")

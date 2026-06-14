@@ -34,3 +34,18 @@ async def ensure_mongo_indexes(db: AsyncDatabase) -> None:
         name="bookmarks_text",
         language_override="text_lang",
     )
+    # Workspace scoping is the primary filter on every list/get query.
+    await db.snippets.create_index("workspace_id", name="snippets_ws")
+    await db.bookmarks.create_index("workspace_id", name="bookmarks_ws")
+
+
+async def backfill_workspace_ids(db: AsyncDatabase, owner_to_workspace: dict[int, int]) -> None:
+    """One-time: stamp legacy snippets/bookmarks (created before tenancy) with
+    their owner's personal workspace. Idempotent — only touches docs missing the
+    field."""
+    for col in (db.snippets, db.bookmarks):
+        for owner_id, workspace_id in owner_to_workspace.items():
+            await col.update_many(
+                {"owner_id": owner_id, "workspace_id": {"$exists": False}},
+                {"$set": {"workspace_id": workspace_id}},
+            )

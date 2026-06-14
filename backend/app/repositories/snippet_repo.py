@@ -26,10 +26,11 @@ class SnippetRepository:
     def __init__(self, db: AsyncDatabase) -> None:
         self.col = db.snippets
 
-    async def create(self, *, owner_id: int, title: str, language: str, code: str,
-                     tags: list[str], notes: str, project_id: int | None) -> dict:
+    async def create(self, *, workspace_id: int, owner_id: int, title: str, language: str,
+                     code: str, tags: list[str], notes: str, project_id: int | None) -> dict:
         now = datetime.now(timezone.utc)
         doc = {
+            "workspace_id": workspace_id,
             "owner_id": owner_id,
             "project_id": project_id,
             "title": title,
@@ -44,10 +45,10 @@ class SnippetRepository:
         doc["_id"] = res.inserted_id
         return _to_api(doc)
 
-    async def list(self, *, owner_id: int, project_id: int | None = None,
+    async def list(self, *, workspace_id: int, project_id: int | None = None,
                    tag: str | None = None, language: str | None = None,
                    limit: int, offset: int) -> list[dict]:
-        query: dict[str, Any] = {"owner_id": owner_id}
+        query: dict[str, Any] = {"workspace_id": workspace_id}
         if project_id is not None:
             query["project_id"] = project_id
         if tag is not None:
@@ -57,35 +58,35 @@ class SnippetRepository:
         cursor = self.col.find(query).sort("created_at", -1).skip(offset).limit(limit)
         return [_to_api(doc) async for doc in cursor]
 
-    async def get(self, snippet_id: str, owner_id: int) -> dict | None:
+    async def get(self, snippet_id: str, workspace_id: int) -> dict | None:
         oid = parse_object_id(snippet_id)
         if oid is None:
             return None
-        doc = await self.col.find_one({"_id": oid, "owner_id": owner_id})
+        doc = await self.col.find_one({"_id": oid, "workspace_id": workspace_id})
         return _to_api(doc) if doc else None
 
-    async def update(self, snippet_id: str, owner_id: int, *, fields: dict) -> dict | None:
+    async def update(self, snippet_id: str, workspace_id: int, *, fields: dict) -> dict | None:
         oid = parse_object_id(snippet_id)
         if oid is None:
             return None
         fields = {**fields, "updated_at": datetime.now(timezone.utc)}
         doc = await self.col.find_one_and_update(
-            {"_id": oid, "owner_id": owner_id},
+            {"_id": oid, "workspace_id": workspace_id},
             {"$set": fields},
             return_document=True,
         )
         return _to_api(doc) if doc else None
 
-    async def delete(self, snippet_id: str, owner_id: int) -> bool:
+    async def delete(self, snippet_id: str, workspace_id: int) -> bool:
         oid = parse_object_id(snippet_id)
         if oid is None:
             return False
-        res = await self.col.delete_one({"_id": oid, "owner_id": owner_id})
+        res = await self.col.delete_one({"_id": oid, "workspace_id": workspace_id})
         return res.deleted_count == 1
 
-    async def search(self, *, owner_id: int, q: str, limit: int) -> list[dict]:
+    async def search(self, *, workspace_id: int, q: str, limit: int) -> list[dict]:
         cursor = (
-            self.col.find({"owner_id": owner_id, "$text": {"$search": q}})
+            self.col.find({"workspace_id": workspace_id, "$text": {"$search": q}})
             .sort([("score", {"$meta": "textScore"})])
             .limit(limit)
         )

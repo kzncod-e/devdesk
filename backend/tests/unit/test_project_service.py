@@ -9,20 +9,21 @@ class FakeProjectRepo:
         self.items = {}
         self._next = 1
 
-    async def create(self, *, owner_id, name, description="", color="#6366f1"):
-        p = type("P", (), {"id": self._next, "owner_id": owner_id, "name": name,
-                           "description": description, "status": "active", "color": color})()
+    async def create(self, *, workspace_id, owner_id, name, description="", color="#6366f1"):
+        p = type("P", (), {"id": self._next, "workspace_id": workspace_id,
+                           "owner_id": owner_id, "name": name, "description": description,
+                           "status": "active", "color": color})()
         self.items[p.id] = p
         self._next += 1
         return p
 
-    async def list_for_owner(self, owner_id, *, limit, offset):
-        mine = [p for p in self.items.values() if p.owner_id == owner_id]
+    async def list_for_workspace(self, workspace_id, *, limit, offset):
+        mine = [p for p in self.items.values() if p.workspace_id == workspace_id]
         return mine[offset:offset + limit]
 
-    async def get_for_owner(self, project_id, owner_id):
+    async def get_for_workspace(self, project_id, workspace_id):
         p = self.items.get(project_id)
-        return p if p and p.owner_id == owner_id else None
+        return p if p and p.workspace_id == workspace_id else None
 
     async def update(self, project, **fields):
         for k, v in fields.items():
@@ -60,15 +61,15 @@ async def test_summary_counts_tasks_snippets_and_bookmarks():
                          task_repo=FakeTaskCounts({"todo": 2, "done": 1}),
                          snippet_repo=FakeDocRepo(count=4),
                          bookmark_repo=FakeDocRepo(count=2))
-    p = await svc.create(owner_id=1, name="Mine")
-    summary = await svc.summary(p.id, owner_id=1)
+    p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
+    summary = await svc.summary(p.id, workspace_id=1)
     assert summary == {
         "tasks": {"todo": 2, "in_progress": 0, "done": 1, "total": 3},
         "snippets": 4,
         "bookmarks": 2,
     }
     with pytest.raises(NotFoundError):
-        await svc.summary(p.id, owner_id=2)
+        await svc.summary(p.id, workspace_id=2)
 
 
 @pytest.mark.asyncio
@@ -77,30 +78,30 @@ async def test_delete_detaches_mongo_docs():
     bookmarks = FakeDocRepo()
     svc = ProjectService(FakeProjectRepo(), snippet_repo=snippets,
                          bookmark_repo=bookmarks)
-    p = await svc.create(owner_id=1, name="Mine")
-    await svc.delete(p.id, owner_id=1)
+    p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
+    await svc.delete(p.id, workspace_id=1)
     assert snippets.detached == [p.id]
     assert bookmarks.detached == [p.id]
 
 
 @pytest.mark.asyncio
-async def test_get_other_users_project_raises_not_found():
+async def test_get_project_in_other_workspace_raises_not_found():
     svc = ProjectService(FakeProjectRepo())
-    p = await svc.create(owner_id=1, name="Mine")
+    p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
     with pytest.raises(NotFoundError):
-        await svc.get(p.id, owner_id=2)
+        await svc.get(p.id, workspace_id=2)
 
 
 @pytest.mark.asyncio
-async def test_update_and_delete_are_owner_scoped():
+async def test_update_and_delete_are_workspace_scoped():
     svc = ProjectService(FakeProjectRepo())
-    p = await svc.create(owner_id=1, name="Mine")
-    updated = await svc.update(p.id, owner_id=1, name="Renamed", status="archived")
+    p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
+    updated = await svc.update(p.id, workspace_id=1, name="Renamed", status="archived")
     assert updated.name == "Renamed" and updated.status == "archived"
     with pytest.raises(NotFoundError):
-        await svc.update(p.id, owner_id=2, name="Hax")
+        await svc.update(p.id, workspace_id=2, name="Hax")
     with pytest.raises(NotFoundError):
-        await svc.delete(p.id, owner_id=2)
-    await svc.delete(p.id, owner_id=1)
+        await svc.delete(p.id, workspace_id=2)
+    await svc.delete(p.id, workspace_id=1)
     with pytest.raises(NotFoundError):
-        await svc.get(p.id, owner_id=1)
+        await svc.get(p.id, workspace_id=1)

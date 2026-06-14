@@ -8,26 +8,26 @@ class ProjectService:
         self.snippet_repo = snippet_repo
         self.bookmark_repo = bookmark_repo
 
-    async def create(self, *, owner_id: int, name: str, description: str = "",
-                     color: str = "#6366f1"):
-        return await self.repo.create(owner_id=owner_id, name=name,
-                                      description=description, color=color)
+    async def create(self, *, workspace_id: int, owner_id: int, name: str,
+                     description: str = "", color: str = "#6366f1"):
+        return await self.repo.create(workspace_id=workspace_id, owner_id=owner_id,
+                                      name=name, description=description, color=color)
 
-    async def list(self, owner_id: int, *, limit: int = 50, offset: int = 0):
-        return await self.repo.list_for_owner(owner_id, limit=limit, offset=offset)
+    async def list(self, workspace_id: int, *, limit: int = 50, offset: int = 0):
+        return await self.repo.list_for_workspace(workspace_id, limit=limit, offset=offset)
 
-    async def get(self, project_id: int, owner_id: int):
-        project = await self.repo.get_for_owner(project_id, owner_id)
+    async def get(self, project_id: int, workspace_id: int):
+        project = await self.repo.get_for_workspace(project_id, workspace_id)
         if project is None:
             raise NotFoundError("Project not found")
         return project
 
-    async def update(self, project_id: int, owner_id: int, **fields):
-        project = await self.get(project_id, owner_id)
+    async def update(self, project_id: int, workspace_id: int, **fields):
+        project = await self.get(project_id, workspace_id)
         return await self.repo.update(project, **fields)
 
-    async def delete(self, project_id: int, owner_id: int) -> None:
-        project = await self.get(project_id, owner_id)
+    async def delete(self, project_id: int, workspace_id: int) -> None:
+        project = await self.get(project_id, workspace_id)
         await self.repo.delete(project)
         # detach (not delete) associated Mongo docs so general-purpose value
         # isn't lost — spec §2 decision
@@ -36,8 +36,8 @@ class ProjectService:
         if self.bookmark_repo is not None:
             await self.bookmark_repo.detach_project(project_id)
 
-    async def summary(self, project_id: int, owner_id: int) -> dict:
-        await self.get(project_id, owner_id)
+    async def summary(self, project_id: int, workspace_id: int) -> dict:
+        await self.get(project_id, workspace_id)
         counts = await self.task_repo.count_by_status(project_id)
         tasks = {
             "todo": counts.get("todo", 0),

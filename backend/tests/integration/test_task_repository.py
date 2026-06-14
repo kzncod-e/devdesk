@@ -8,6 +8,7 @@ from app.db.postgres import Base
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
+from app.repositories.workspace_repo import WorkspaceRepository
 
 
 @pytest.fixture(scope="module")
@@ -33,19 +34,24 @@ async def fixtures(session):
     users = UserRepository(session)
     owner = await users.create(email="o@x.y", password_hash="h", name="O")
     other = await users.create(email="p@x.y", password_hash="h", name="P")
+    spaces = WorkspaceRepository(session)
+    ws = await spaces.create(name="W", slug="ws-w", created_by=owner.id)
+    other_ws = await spaces.create(name="OW", slug="ws-ow", created_by=other.id)
+    await session.commit()
     projects = ProjectRepository(session)
-    project = await projects.create(owner_id=owner.id, name="P1")
-    return owner, other, project
+    project = await projects.create(workspace_id=ws.id, owner_id=owner.id, name="P1")
+    return ws, other_ws, project
 
 
 @pytest.mark.asyncio
 async def test_create_defaults_and_list_ordered_by_position(session, fixtures):
-    owner, other, project = fixtures
+    ws, other_ws, project = fixtures
     repo = TaskRepository(session)
 
-    t1 = await repo.create(project_id=project.id, title="First", position=1024.0)
-    t2 = await repo.create(project_id=project.id, title="Second", position=2048.0,
-                           priority="high", due_date=date(2026, 7, 1))
+    t1 = await repo.create(project_id=project.id, workspace_id=ws.id, title="First",
+                           position=1024.0)
+    t2 = await repo.create(project_id=project.id, workspace_id=ws.id, title="Second",
+                           position=2048.0, priority="high", due_date=date(2026, 7, 1))
     assert t1.status == "todo" and t1.priority == "medium" and t1.due_date is None
     assert t2.priority == "high" and t2.due_date == date(2026, 7, 1)
 
@@ -56,25 +62,27 @@ async def test_create_defaults_and_list_ordered_by_position(session, fixtures):
 
 
 @pytest.mark.asyncio
-async def test_get_with_owner_scopes_through_project(session, fixtures):
-    owner, other, project = fixtures
+async def test_get_in_workspace_scopes(session, fixtures):
+    ws, other_ws, project = fixtures
     repo = TaskRepository(session)
-    t = await repo.create(project_id=project.id, title="Mine", position=1024.0)
+    t = await repo.create(project_id=project.id, workspace_id=ws.id, title="Mine",
+                          position=1024.0)
 
-    assert (await repo.get_with_owner(t.id, owner.id)).id == t.id
-    assert await repo.get_with_owner(t.id, other.id) is None
-    assert await repo.get_with_owner(99999, owner.id) is None
+    assert (await repo.get_in_workspace(t.id, ws.id)).id == t.id
+    assert await repo.get_in_workspace(t.id, other_ws.id) is None
+    assert await repo.get_in_workspace(99999, ws.id) is None
 
 
 @pytest.mark.asyncio
 async def test_max_position_and_count_by_status(session, fixtures):
-    owner, other, project = fixtures
+    ws, other_ws, project = fixtures
     repo = TaskRepository(session)
 
     assert await repo.max_position(project.id, "todo") is None
-    await repo.create(project_id=project.id, title="A", position=1024.0)
-    await repo.create(project_id=project.id, title="B", position=2048.0)
-    done = await repo.create(project_id=project.id, title="C", position=1024.0)
+    await repo.create(project_id=project.id, workspace_id=ws.id, title="A", position=1024.0)
+    await repo.create(project_id=project.id, workspace_id=ws.id, title="B", position=2048.0)
+    done = await repo.create(project_id=project.id, workspace_id=ws.id, title="C",
+                             position=1024.0)
     await repo.update(done, status="done")
 
     assert await repo.max_position(project.id, "todo") == 2048.0
@@ -84,8 +92,9 @@ async def test_max_position_and_count_by_status(session, fixtures):
 
 @pytest.mark.asyncio
 async def test_delete(session, fixtures):
-    owner, other, project = fixtures
+    ws, other_ws, project = fixtures
     repo = TaskRepository(session)
-    t = await repo.create(project_id=project.id, title="Gone", position=1024.0)
+    t = await repo.create(project_id=project.id, workspace_id=ws.id, title="Gone",
+                          position=1024.0)
     await repo.delete(t)
-    assert await repo.get_with_owner(t.id, owner.id) is None
+    assert await repo.get_in_workspace(t.id, ws.id) is None

@@ -8,8 +8,8 @@ class FakePgRepo:
         self.items = items
         self.calls = []
 
-    async def search(self, owner_id, q, *, limit):
-        self.calls.append((owner_id, q, limit))
+    async def search(self, workspace_id, q, *, limit):
+        self.calls.append((workspace_id, q, limit))
         return self.items[:limit]
 
 
@@ -18,8 +18,8 @@ class FakeMongoRepo:
         self.items = items
         self.calls = []
 
-    async def search(self, *, owner_id, q, limit):
-        self.calls.append((owner_id, q, limit))
+    async def search(self, *, workspace_id, q, limit):
+        self.calls.append((workspace_id, q, limit))
         return self.items[:limit]
 
 
@@ -31,7 +31,7 @@ async def test_search_fans_out_and_groups():
     bookmarks = FakeMongoRepo([])
     svc = SearchService(projects, tasks, snippets, bookmarks)
 
-    result = await svc.search(owner_id=42, q="nginx", limit_per_group=10)
+    result = await svc.search(workspace_id=42, q="nginx", limit_per_group=10)
     assert result == {"projects": ["p1"], "tasks": ["t1", "t2"],
                       "snippets": ["s1"], "bookmarks": []}
     assert projects.calls == [(42, "nginx", 10)]
@@ -42,5 +42,5 @@ async def test_search_fans_out_and_groups():
 async def test_search_respects_per_group_limit():
     tasks = FakePgRepo(["t1", "t2", "t3"])
     svc = SearchService(FakePgRepo([]), tasks, FakeMongoRepo([]), FakeMongoRepo([]))
-    result = await svc.search(owner_id=1, q="x", limit_per_group=2)
+    result = await svc.search(workspace_id=1, q="x", limit_per_group=2)
     assert result["tasks"] == ["t1", "t2"]

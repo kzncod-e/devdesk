@@ -14,6 +14,11 @@ from app.repositories.project_repo import ProjectRepository
 from app.repositories.snippet_repo import SnippetRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.user_repo import UserRepository
+from app.repositories.workspace_repo import (
+    InviteRepository,
+    MembershipRepository,
+    WorkspaceRepository,
+)
 from app.services.auth_service import AuthService
 from app.services.bookmark_service import BookmarkService, FetchHtml, default_fetch_html
 from app.services.project_service import ProjectService
@@ -21,6 +26,7 @@ from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
 from app.services.task_service import TaskService
 from app.services.user_service import UserService
+from app.services.workspace_service import WorkspaceService
 
 bearer = HTTPBearer(auto_error=True)
 
@@ -37,6 +43,9 @@ def get_auth_service(
         jwt_secret=settings.jwt_secret,
         access_minutes=settings.access_token_minutes,
         refresh_minutes=settings.refresh_token_days * 24 * 60,
+        session=session,
+        workspace_repo=WorkspaceRepository(session),
+        membership_repo=MembershipRepository(session),
     )
 
 
@@ -83,6 +92,16 @@ def get_search_service(session: Session, mongo_db: MongoDb) -> SearchService:
 
 def get_user_service(session: Session) -> UserService:
     return UserService(UserRepository(session))
+
+
+def get_workspace_service(session: Session) -> WorkspaceService:
+    return WorkspaceService(
+        session,
+        WorkspaceRepository(session),
+        MembershipRepository(session),
+        InviteRepository(session),
+        UserRepository(session),
+    )
 
 
 async def get_current_user(

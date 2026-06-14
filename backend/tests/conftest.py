@@ -66,10 +66,18 @@ async def client(mongo_container_url):
     await engine.dispose()
 
 
-async def register_and_login(client, email="user@test.dev", password="pw123456"):
+async def register_and_login(client, email="user@test.dev", password="pw123456",
+                             with_workspace=True):
     await client.post("/api/v1/auth/register",
                       json={"email": email, "password": password, "name": "Test"})
     resp = await client.post("/api/v1/auth/login",
                              json={"email": email, "password": password})
     token = resp.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}"}
+    # Registration auto-provisions a personal workspace; scope content calls to it.
+    if with_workspace:
+        ws = await client.get("/api/v1/workspaces", headers=headers)
+        spaces = ws.json()
+        if spaces:
+            headers["X-Workspace-Id"] = str(spaces[0]["id"])
+    return headers

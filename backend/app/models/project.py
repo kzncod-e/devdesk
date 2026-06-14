@@ -11,6 +11,11 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # Nullable for now (backfilled on startup); becomes NOT NULL once routers are
+    # workspace-scoped in increment 2.
+    workspace_id: Mapped[int | None] = mapped_column(
+        ForeignKey("workspaces.id"), index=True, nullable=True
+    )
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="active")  # active|archived

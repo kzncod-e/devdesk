@@ -5,6 +5,7 @@ from testcontainers.postgres import PostgresContainer
 from app.db.postgres import Base
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.user_repo import UserRepository
+from app.repositories.workspace_repo import WorkspaceRepository
 
 
 @pytest.fixture(scope="module")
@@ -36,26 +37,32 @@ async def test_user_create_and_get_by_email(session):
 
 
 @pytest.mark.asyncio
-async def test_project_crud_scoped_by_owner(session):
+async def test_project_crud_scoped_by_workspace(session):
     users = UserRepository(session)
     owner = await users.create(email="o@x.y", password_hash="h", name="O")
     other = await users.create(email="p@x.y", password_hash="h", name="P")
 
+    spaces = WorkspaceRepository(session)
+    ws_a = await spaces.create(name="A", slug="ws-a", created_by=owner.id)
+    ws_b = await spaces.create(name="B", slug="ws-b", created_by=other.id)
+    await session.commit()
+
     repo = ProjectRepository(session)
-    p = await repo.create(owner_id=owner.id, name="DevDesk", description="", color="#fff")
+    p = await repo.create(workspace_id=ws_a.id, owner_id=owner.id, name="DevDesk",
+                          description="", color="#ffffff")
     assert p.status == "active"
 
-    mine = await repo.list_for_owner(owner.id, limit=10, offset=0)
-    theirs = await repo.list_for_owner(other.id, limit=10, offset=0)
+    mine = await repo.list_for_workspace(ws_a.id, limit=10, offset=0)
+    theirs = await repo.list_for_workspace(ws_b.id, limit=10, offset=0)
     assert [x.id for x in mine] == [p.id]
     assert theirs == []
 
-    got = await repo.get_for_owner(p.id, owner.id)
+    got = await repo.get_for_workspace(p.id, ws_a.id)
     assert got is not None
-    assert await repo.get_for_owner(p.id, other.id) is None
+    assert await repo.get_for_workspace(p.id, ws_b.id) is None
 
     updated = await repo.update(p, name="DevDesk 2", status="archived")
     assert updated.name == "DevDesk 2" and updated.status == "archived"
 
     await repo.delete(p)
-    assert await repo.get_for_owner(p.id, owner.id) is None
+    assert await repo.get_for_workspace(p.id, ws_a.id) is None
