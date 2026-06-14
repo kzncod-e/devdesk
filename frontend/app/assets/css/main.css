@@ -9,8 +9,13 @@
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo,
     Consolas, "Liberation Mono", monospace;
+  /* Editorial display face — used on the marketing landing only. */
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia,
+    "Times New Roman", serif;
 
   --radius-card: 0.875rem;
+
+  --animate-marquee: marquee 38s linear infinite;
 
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
 
@@ -204,6 +209,33 @@
     );
     background-size: 22px 22px;
   }
+
+  /* Blueprint ruling — engineering spec-sheet backdrop for the landing hero. */
+  .bg-blueprint {
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 72px 72px;
+    -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 78%);
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 78%);
+  }
+
+  /* Fine grain overlay — adds tooth to flat marketing surfaces. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
 }
 
 /* ── Keyframes ── */
@@ -220,6 +252,17 @@
 @keyframes pop-in {
   0% { opacity: 0; transform: scale(0.96); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+/* Landing feature ticker */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 /* List / entrance helpers (Vue <Transition> + utility usage) */
