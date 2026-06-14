@@ -1,100 +1,122 @@
-# annotations deferred: methods named `list` would otherwise shadow the
-# builtin when return annotations are evaluated in the class body
-from __future__ import annotations
+from sqlalchemy import String, func, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import datetime, timezone
-from typing import Any
-
-from bson import ObjectId
-from bson.errors import InvalidId
-from pymongo.asynchronous.database import AsyncDatabase
+from app.models.snippet import Snippet
 
 
-def _to_api(doc: dict[str, Any]) -> dict[str, Any]:
-    doc["id"] = str(doc.pop("_id"))
-    return doc
+def _to_api(s: Snippet) -> dict:
+    return {
+        "id": s.id,
+        "project_id": s.project_id,
+        "title": s.title,
+        "language": s.language,
+        "code": s.code,
+        "tags": list(s.tags or []),
+        "notes": s.notes,
+    }
 
 
-def parse_object_id(value: str) -> ObjectId | None:
-    try:
-        return ObjectId(value)
-    except (InvalidId, TypeError):
-        return None
+def _is_pg(session: AsyncSession) -> bool:
+    return session.bind.dialect.name == "postgresql"
+
+
+def _tag_filter(session: AsyncSession, tag: str):
+    if _is_pg(session):
+        return Snippet.tags.contains([tag])
+    # SQLite test tier: tags are JSON text like ["api","db"].
+    return func.cast(Snippet.tags, String).like(f'%"{tag}"%')
+
+
+def _search_filter(session: AsyncSession, q: str):
+    if _is_pg(session):
+        doc = func.to_tsvector(
+            "english",
+            func.concat_ws(" ", Snippet.title, Snippet.code, Snippet.notes,
+                           func.array_to_string(Snippet.tags, " ")),
+        )
+        return doc.op("@@")(func.websearch_to_tsquery("english", q))
+    return or_(
+        Snippet.title.ilike(f"%{q}%"),
+        Snippet.code.ilike(f"%{q}%"),
+        Snippet.notes.ilike(f"%{q}%"),
+        func.cast(Snippet.tags, String).ilike(f"%{q}%"),
+    )
 
 
 class SnippetRepository:
-    def __init__(self, db: AsyncDatabase) -> None:
-        self.col = db.snippets
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
 
     async def create(self, *, workspace_id: int, owner_id: int, title: str, language: str,
                      code: str, tags: list[str], notes: str, project_id: int | None) -> dict:
-        now = datetime.now(timezone.utc)
-        doc = {
-            "workspace_id": workspace_id,
-            "owner_id": owner_id,
-            "project_id": project_id,
-            "title": title,
-            "language": language,
-            "code": code,
-            "tags": tags,
-            "notes": notes,
-            "created_at": now,
-            "updated_at": now,
-        }
-        res = await self.col.insert_one(doc)
-        doc["_id"] = res.inserted_id
-        return _to_api(doc)
+        s = Snippet(workspace_id=workspace_id, owner_id=owner_id, title=title,
+                    language=language, code=code, tags=tags, notes=notes,
+                    project_id=project_id)
+        self.session.add(s)
+        await self.session.commit()
+        await self.session.refresh(s)
+        return _to_api(s)
 
     async def list(self, *, workspace_id: int, project_id: int | None = None,
                    tag: str | None = None, language: str | None = None,
                    limit: int, offset: int) -> list[dict]:
-        query: dict[str, Any] = {"workspace_id": workspace_id}
+        stmt = select(Snippet).where(Snippet.workspace_id == workspace_id)
         if project_id is not None:
-            query["project_id"] = project_id
+            stmt = stmt.where(Snippet.project_id == project_id)
         if tag is not None:
-            query["tags"] = tag
+            stmt = stmt.where(_tag_filter(self.session, tag))
         if language is not None:
-            query["language"] = language
-        cursor = self.col.find(query).sort("created_at", -1).skip(offset).limit(limit)
-        return [_to_api(doc) async for doc in cursor]
+            stmt = stmt.where(Snippet.language == language)
+        stmt = stmt.order_by(Snippet.created_at.desc()).limit(limit).offset(offset)
+        res = await self.session.execute(stmt)
+        return [_to_api(s) for s in res.scalars().all()]
 
-    async def get(self, snippet_id: str, workspace_id: int) -> dict | None:
-        oid = parse_object_id(snippet_id)
-        if oid is None:
-            return None
-        doc = await self.col.find_one({"_id": oid, "workspace_id": workspace_id})
-        return _to_api(doc) if doc else None
+    async def get(self, snippet_id: int, workspace_id: int) -> dict | None:
+        s = await self._get(snippet_id, workspace_id)
+        return _to_api(s) if s else None
 
-    async def update(self, snippet_id: str, workspace_id: int, *, fields: dict) -> dict | None:
-        oid = parse_object_id(snippet_id)
-        if oid is None:
-            return None
-        fields = {**fields, "updated_at": datetime.now(timezone.utc)}
-        doc = await self.col.find_one_and_update(
-            {"_id": oid, "workspace_id": workspace_id},
-            {"$set": fields},
-            return_document=True,
+    async def _get(self, snippet_id: int, workspace_id: int) -> Snippet | None:
+        res = await self.session.execute(
+            select(Snippet).where(Snippet.id == snippet_id,
+                                  Snippet.workspace_id == workspace_id)
         )
-        return _to_api(doc) if doc else None
+        return res.scalar_one_or_none()
 
-    async def delete(self, snippet_id: str, workspace_id: int) -> bool:
-        oid = parse_object_id(snippet_id)
-        if oid is None:
+    async def update(self, snippet_id: int, workspace_id: int, *, fields: dict) -> dict | None:
+        s = await self._get(snippet_id, workspace_id)
+        if s is None:
+            return None
+        for key, value in fields.items():
+            setattr(s, key, value)
+        await self.session.commit()
+        await self.session.refresh(s)
+        return _to_api(s)
+
+    async def delete(self, snippet_id: int, workspace_id: int) -> bool:
+        s = await self._get(snippet_id, workspace_id)
+        if s is None:
             return False
-        res = await self.col.delete_one({"_id": oid, "workspace_id": workspace_id})
-        return res.deleted_count == 1
+        await self.session.delete(s)
+        await self.session.commit()
+        return True
 
     async def search(self, *, workspace_id: int, q: str, limit: int) -> list[dict]:
-        cursor = (
-            self.col.find({"workspace_id": workspace_id, "$text": {"$search": q}})
-            .sort([("score", {"$meta": "textScore"})])
+        stmt = (
+            select(Snippet)
+            .where(Snippet.workspace_id == workspace_id, _search_filter(self.session, q))
             .limit(limit)
         )
-        return [_to_api(doc) async for doc in cursor]
+        res = await self.session.execute(stmt)
+        return [_to_api(s) for s in res.scalars().all()]
 
     async def detach_project(self, project_id: int) -> None:
-        await self.col.update_many({"project_id": project_id},
-                                   {"$set": {"project_id": None}})
+        await self.session.execute(
+            update(Snippet).where(Snippet.project_id == project_id).values(project_id=None)
+        )
+        await self.session.commit()
 
     async def count_for_project(self, project_id: int) -> int:
-        return await self.col.count_documents({"project_id": project_id})
+        res = await self.session.execute(
+            select(func.count()).select_from(Snippet).where(Snippet.project_id == project_id)
+        )
+        return int(res.scalar_one())
