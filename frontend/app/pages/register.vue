@@ -41,20 +41,20 @@ async function submit() {
         <p class="mt-1 text-sm text-ink-muted">Start organizing in seconds.</p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label">Name</label>
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">Name</span>
             <input v-model="name" type="text" required autocomplete="name" placeholder="Ada Lovelace" class="field-input">
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label">Email</label>
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">Email</span>
             <input v-model="email" type="email" required autocomplete="email" placeholder="you@dev.com" class="field-input">
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label">Password</label>
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">Password</span>
             <input v-model="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" class="field-input">
-          </div>
+          </label>
           <Transition name="fade">
-            <p v-if="error" class="flex items-center gap-1.5 text-sm text-danger">
+            <p v-if="error" role="alert" class="flex items-center gap-1.5 text-sm text-danger">
               <UiIcon name="x" :size="14" /> {{ error }}
             </p>
           </Transition>

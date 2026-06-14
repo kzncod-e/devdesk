@@ -18,7 +18,7 @@ const priorityTone: Record<TaskPriority, 'gray' | 'amber' | 'red'> = {
 
 const dueLabel = computed(() => {
   if (!props.task.due_date) return null
-  return new Date(`${props.task.due_date}T00:00:00`).toLocaleDateString('en-US', {
+  return new Date(`${props.task.due_date}T00:00:00`).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
   })

@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
               </div>
               <UiIconButton icon="x" label="Close" @click="emit('close')" />
             </header>
-            <div class="flex-1 overflow-y-auto px-6 py-5">
+            <div class="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
               <slot />
             </div>
             <footer v-if="$slots.footer" class="shrink-0 border-t border-line px-6 py-4">

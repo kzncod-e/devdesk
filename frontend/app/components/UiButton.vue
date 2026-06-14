@@ -17,7 +17,7 @@ const props = withDefaults(
 
 const base =
   'relative inline-flex items-center justify-center gap-2 rounded-lg font-medium ' +
-  'transition-all duration-150 active:scale-[0.97] disabled:pointer-events-none ' +
+  'transition duration-150 active:scale-[0.97] disabled:pointer-events-none ' +
   'disabled:opacity-55 focus-visible:outline-none'
 
 const variants: Record<Variant, string> = {

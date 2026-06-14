@@ -30,6 +30,9 @@ const fontSize = computed(() => `${Math.round(props.size * 0.42)}px`)
       v-if="user.avatar_url"
       :src="user.avatar_url"
       :alt="user.name"
+      :width="size"
+      :height="size"
+      loading="lazy"
       class="size-full object-cover"
     >
     <template v-else>{{ initials }}</template>

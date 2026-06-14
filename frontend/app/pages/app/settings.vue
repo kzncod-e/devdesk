@@ -67,14 +67,14 @@ const roleTone: Record<string, 'indigo' | 'amber' | 'red'> = {
       </h2>
 
       <form class="flex flex-col gap-4" @submit.prevent="saveProfile.mutate()">
-        <div class="flex flex-col gap-1.5">
-          <label class="field-label">Display name</label>
-          <input v-model="profileName" type="text" required maxlength="120" class="field-input sm:max-w-xs">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="field-label">Email</label>
+        <label class="flex flex-col gap-1.5">
+          <span class="field-label">Display name</span>
+          <input v-model="profileName" type="text" required maxlength="120" autocomplete="name" class="field-input sm:max-w-xs">
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="field-label">Email</span>
           <input :value="user?.email" type="email" disabled class="field-input sm:max-w-xs">
-        </div>
+        </label>
         <div class="flex items-center gap-3">
           <UiButton variant="primary" type="submit" :loading="saveProfile.isPending.value" icon="check" size="sm">
             Save profile
@@ -133,6 +133,7 @@ const roleTone: Record<string, 'indigo' | 'amber' | 'red'> = {
           <select
             :value="u.role"
             :disabled="u.id === user?.id || setRole.isPending.value"
+            :aria-label="`Change role for ${u.name}`"
             class="field-input w-32 py-1.5 text-xs"
             @change="setRole.mutate({ userId: u.id, role: ($event.target as HTMLSelectElement).value })"
           >

@@ -30,30 +30,32 @@ function submit() {
 <template>
   <form class="flex flex-col gap-5" @submit.prevent="submit">
     <div v-if="!props.bookmark" class="flex flex-col gap-1.5">
-      <label class="field-label">URL</label>
-      <div class="relative">
-        <UiIcon name="bookmark" :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
-        <input v-model="url" type="url" required placeholder="https://…" class="field-input pl-9">
-      </div>
+      <label class="flex flex-col gap-1.5">
+        <span class="field-label">URL</span>
+        <div class="relative">
+          <UiIcon name="bookmark" :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+          <input v-model="url" type="url" required inputmode="url" autocapitalize="off" placeholder="https://…" class="field-input pl-9">
+        </div>
+      </label>
       <p class="text-xs text-ink-subtle">Title, description and favicon are fetched automatically.</p>
     </div>
-    <div v-else class="flex flex-col gap-1.5">
-      <label class="field-label">Title</label>
+    <label v-else class="flex flex-col gap-1.5">
+      <span class="field-label">Title</span>
       <input v-model="title" type="text" maxlength="300" class="field-input">
-    </div>
+    </label>
 
     <div class="flex flex-col gap-1.5">
-      <label class="field-label">Tags</label>
-      <TagInput v-model="tags" />
+      <span class="field-label">Tags</span>
+      <TagInput v-model="tags" aria-label="Tags" />
     </div>
 
-    <div class="flex flex-col gap-1.5">
-      <label class="field-label">Project</label>
+    <label class="flex flex-col gap-1.5">
+      <span class="field-label">Project</span>
       <select v-model="projectId" class="field-input">
         <option :value="null">— none —</option>
         <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
       </select>
-    </div>
+    </label>
 
     <div class="flex justify-end gap-2 pt-4">
       <UiButton variant="ghost" type="button" @click="emit('cancel')">Cancel</UiButton>

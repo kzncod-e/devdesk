@@ -51,8 +51,8 @@ async function submit() {
         <p class="mt-1 text-sm text-ink-muted">Log in to your workspace.</p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label">Email</label>
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">Email</span>
             <input
               v-model="email"
               type="email"
@@ -61,9 +61,9 @@ async function submit() {
               placeholder="you@dev.com"
               class="field-input"
             />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="field-label">Password</label>
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">Password</span>
             <input
               v-model="password"
               type="password"
@@ -72,10 +72,11 @@ async function submit() {
               placeholder="••••••••"
               class="field-input"
             />
-          </div>
+          </label>
           <Transition name="fade">
             <p
               v-if="error"
+              role="alert"
               class="flex items-center gap-1.5 text-sm text-danger"
             >
               <UiIcon name="x" :size="14" /> {{ error }}

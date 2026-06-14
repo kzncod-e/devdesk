@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useAttrs } from 'vue'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{ modelValue: string[] }>()
 const emit = defineEmits<{ 'update:modelValue': [tags: string[]] }>()
+
+const attrs = useAttrs()
+const inputLabel = (attrs['aria-label'] as string) || 'Add tag'
 
 const draft = ref('')
 
@@ -48,6 +53,8 @@ function onBackspace() {
     <input
       v-model="draft"
       type="text"
+      :aria-label="inputLabel"
+      autocapitalize="off"
       placeholder="Add tag…"
       class="min-w-24 flex-1 border-none bg-transparent py-0.5 text-sm text-ink outline-none placeholder:text-ink-subtle"
       @keydown.enter.prevent="addTag"

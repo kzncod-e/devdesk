@@ -188,7 +188,7 @@
 
   /* Card action button (native <button> so it stays accessible in isolated tests) */
   .icon-btn {
-    @apply inline-grid size-7 place-items-center rounded-lg text-ink-muted transition-all
+    @apply inline-grid size-7 place-items-center rounded-lg text-ink-muted transition
       duration-150 hover:bg-surface-2 hover:text-ink active:scale-90
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)];
   }

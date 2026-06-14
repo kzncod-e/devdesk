@@ -31,12 +31,11 @@ const expanded = ref(false)
       </div>
     </header>
 
-    <button type="button" class="text-left" @click="expanded = !expanded">
-      <CodeBlock :code="snippet.code" :language="snippet.language" collapsible :expanded="expanded" />
-    </button>
+    <CodeBlock :code="snippet.code" :language="snippet.language" collapsible :expanded="expanded" />
 
     <button
       type="button"
+      :aria-expanded="expanded"
       class="self-start text-xs font-medium text-ink-subtle transition hover:text-accent"
       @click="expanded = !expanded"
     >

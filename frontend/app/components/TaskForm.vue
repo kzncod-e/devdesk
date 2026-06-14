@@ -47,23 +47,24 @@ function submit() {
 
 <template>
   <form class="flex flex-col gap-5" @submit.prevent="submit">
-    <div class="flex flex-col gap-1.5">
-      <label class="field-label">Title</label>
+    <label class="flex flex-col gap-1.5">
+      <span class="field-label">Title</span>
       <input v-model="title" type="text" required maxlength="200" placeholder="What needs doing?" class="field-input">
-    </div>
+    </label>
 
-    <div class="flex flex-col gap-1.5">
-      <label class="field-label">Description</label>
+    <label class="flex flex-col gap-1.5">
+      <span class="field-label">Description</span>
       <textarea v-model="description" rows="4" placeholder="Add detail…" class="field-input resize-none" />
-    </div>
+    </label>
 
-    <div class="flex flex-col gap-2">
-      <label class="field-label">Priority</label>
+    <div class="flex flex-col gap-2" role="group" aria-label="Priority">
+      <span class="field-label">Priority</span>
       <div class="grid grid-cols-3 gap-2">
         <button
           v-for="p in priorities"
           :key="p.value"
           type="button"
+          :aria-pressed="priority === p.value"
           :class="[
             'rounded-lg border px-3 py-2 text-sm font-medium capitalize transition',
             priority === p.value
@@ -77,18 +78,19 @@ function submit() {
       </div>
     </div>
 
-    <div class="flex flex-col gap-1.5">
-      <label class="field-label">Due date</label>
+    <label class="flex flex-col gap-1.5">
+      <span class="field-label">Due date</span>
       <input v-model="dueDate" type="date" class="field-input">
-    </div>
+    </label>
 
-    <div v-if="(users ?? []).length" class="flex flex-col gap-2">
-      <label class="field-label">Assignees</label>
+    <div v-if="(users ?? []).length" class="flex flex-col gap-2" role="group" aria-label="Assignees">
+      <span class="field-label">Assignees</span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="u in users"
           :key="u.id"
           type="button"
+          :aria-pressed="assigneeIds.includes(u.id)"
           :class="[
             'flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition',
             assigneeIds.includes(u.id)

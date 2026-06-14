@@ -20,7 +20,7 @@ const tones: Record<Tone, string> = {
     :aria-label="label"
     :title="label"
     :class="[
-      'inline-grid place-items-center rounded-lg transition-all duration-150 active:scale-90',
+      'inline-grid place-items-center rounded-lg transition duration-150 active:scale-90',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
       sizes[size],
       active ? 'bg-surface-2 text-ink' : tones[tone],

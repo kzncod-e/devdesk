@@ -290,6 +290,7 @@ async function confirmDelete(t: Task) {
           <input
             v-model="drafts[col.key]"
             type="text"
+            :aria-label="`Add a task to ${col.label}`"
             :placeholder="adding === col.key ? 'Task title, then Enter…' : '+ Add task'"
             class="w-full rounded-lg border border-transparent bg-transparent px-2.5 py-2 text-sm text-ink outline-none transition placeholder:text-ink-subtle focus:border-line focus:bg-surface focus:shadow-sm"
             @focus="adding = col.key"
@@ -328,7 +329,7 @@ async function confirmDelete(t: Task) {
             class="hidden items-center gap-1 text-xs text-ink-subtle sm:inline-flex"
           >
             <UiIcon name="calendar" :size="12" />
-            {{ new Date(`${task.due_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+            {{ new Date(`${task.due_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }}
           </span>
           <div v-if="task.assignees.length" class="flex shrink-0 items-center -space-x-1.5">
             <UiAvatar v-for="a in task.assignees.slice(0, 3)" :key="a.id" :user="a" :size="22" />

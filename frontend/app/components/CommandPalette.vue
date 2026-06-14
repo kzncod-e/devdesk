@@ -180,14 +180,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
               <input
                 ref="input"
                 v-model="query"
-                type="text"
+                type="search"
+                aria-label="Search projects, tasks, snippets and bookmarks"
                 placeholder="Search projects, tasks, snippets, bookmarks…"
                 class="h-14 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-subtle"
               >
               <kbd class="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-subtle">ESC</kbd>
             </div>
 
-            <div class="max-h-[52vh] overflow-y-auto p-2">
+            <div class="max-h-[52vh] overflow-y-auto overscroll-contain p-2">
               <div v-if="loading" class="space-y-1.5 p-2">
                 <UiSkeleton v-for="i in 4" :key="i" class="h-10 w-full rounded-lg" />
               </div>
