@@ -20,7 +20,7 @@ class TaskRepository:
                     position=position, description=description, priority=priority,
                     due_date=due_date, assignees=assignees or [])
         self.session.add(task)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(task)
         return task
 
@@ -82,4 +82,4 @@ class TaskRepository:
 
     async def delete(self, task: Task) -> None:
         await self.session.delete(task)
-        await self.session.commit()
+        await self.session.flush()

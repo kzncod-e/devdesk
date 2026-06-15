@@ -15,11 +15,9 @@ import app.models.project  # noqa: F401
 import app.models.task  # noqa: F401
 import app.models.workspace  # noqa: F401
 
-try:  # snippets/bookmarks become Postgres models in Phase 2.1
-    import app.models.snippet  # noqa: F401
-    import app.models.bookmark  # noqa: F401
-except ImportError:
-    pass
+import app.models.snippet  # noqa: F401
+import app.models.bookmark  # noqa: F401
+import app.models.outbox  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)

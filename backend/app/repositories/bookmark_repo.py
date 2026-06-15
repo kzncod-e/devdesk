@@ -1,94 +1,133 @@
+# annotations deferred: the `list` method would otherwise shadow the builtin
+# when later return annotations (`-> list[dict]`) are evaluated in the class body.
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from sqlalchemy import String, func, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from pymongo.asynchronous.database import AsyncDatabase
+from app.models.bookmark import Bookmark
 
-from app.repositories.snippet_repo import _to_api, parse_object_id
+
+def _to_api(b: Bookmark) -> dict:
+    return {
+        "id": b.id,
+        "project_id": b.project_id,
+        "url": b.url,
+        "title": b.title,
+        "description": b.description,
+        "tags": list(b.tags or []),
+        "favicon": b.favicon,
+        "fetched_meta": b.fetched_meta or {},
+    }
+
+
+def _is_pg(session: AsyncSession) -> bool:
+    return session.bind.dialect.name == "postgresql"
+
+
+def _tag_filter(session: AsyncSession, tag: str):
+    if _is_pg(session):
+        return Bookmark.tags.any(tag)  # tag = ANY(tags)
+    return func.cast(Bookmark.tags, String).like(f'%"{tag}"%')
+
+
+def _search_filter(session: AsyncSession, q: str):
+    if _is_pg(session):
+        doc = func.to_tsvector(
+            "english",
+            func.concat_ws(" ", Bookmark.title, Bookmark.description, Bookmark.url,
+                           func.array_to_string(Bookmark.tags, " ")),
+        )
+        return doc.op("@@")(func.websearch_to_tsquery("english", q))
+    return or_(
+        Bookmark.title.ilike(f"%{q}%"),
+        Bookmark.description.ilike(f"%{q}%"),
+        Bookmark.url.ilike(f"%{q}%"),
+        func.cast(Bookmark.tags, String).ilike(f"%{q}%"),
+    )
 
 
 class BookmarkRepository:
-    def __init__(self, db: AsyncDatabase) -> None:
-        self.col = db.bookmarks
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
 
     async def create(self, *, workspace_id: int, owner_id: int, url: str,
                      tags: list[str], project_id: int | None) -> dict:
-        doc = {
-            "workspace_id": workspace_id,
-            "owner_id": owner_id,
-            "project_id": project_id,
-            "url": url,
-            "title": "",
-            "description": "",
-            "tags": tags,
-            "favicon": "",
-            "fetched_meta": {},
-            "created_at": datetime.now(timezone.utc),
-        }
-        res = await self.col.insert_one(doc)
-        doc["_id"] = res.inserted_id
-        return _to_api(doc)
+        b = Bookmark(workspace_id=workspace_id, owner_id=owner_id, url=url,
+                     tags=tags, project_id=project_id)
+        self.session.add(b)
+        await self.session.flush()
+        await self.session.refresh(b)
+        return _to_api(b)
 
     async def list(self, *, workspace_id: int, project_id: int | None = None,
                    tag: str | None = None, limit: int, offset: int) -> list[dict]:
-        query: dict[str, Any] = {"workspace_id": workspace_id}
+        stmt = select(Bookmark).where(Bookmark.workspace_id == workspace_id)
         if project_id is not None:
-            query["project_id"] = project_id
+            stmt = stmt.where(Bookmark.project_id == project_id)
         if tag is not None:
-            query["tags"] = tag
-        cursor = self.col.find(query).sort("created_at", -1).skip(offset).limit(limit)
-        return [_to_api(doc) async for doc in cursor]
+            stmt = stmt.where(_tag_filter(self.session, tag))
+        stmt = stmt.order_by(Bookmark.created_at.desc()).limit(limit).offset(offset)
+        res = await self.session.execute(stmt)
+        return [_to_api(b) for b in res.scalars().all()]
 
-    async def get(self, bookmark_id: str, workspace_id: int) -> dict | None:
-        oid = parse_object_id(bookmark_id)
-        if oid is None:
-            return None
-        doc = await self.col.find_one({"_id": oid, "workspace_id": workspace_id})
-        return _to_api(doc) if doc else None
+    async def get(self, bookmark_id: int, workspace_id: int) -> dict | None:
+        b = await self._get(bookmark_id, workspace_id)
+        return _to_api(b) if b else None
 
-    async def update(self, bookmark_id: str, workspace_id: int, *, fields: dict) -> dict | None:
-        oid = parse_object_id(bookmark_id)
-        if oid is None:
-            return None
-        doc = await self.col.find_one_and_update(
-            {"_id": oid, "workspace_id": workspace_id},
-            {"$set": fields},
-            return_document=True,
+    async def _get(self, bookmark_id: int, workspace_id: int) -> Bookmark | None:
+        res = await self.session.execute(
+            select(Bookmark).where(Bookmark.id == bookmark_id,
+                                   Bookmark.workspace_id == workspace_id)
         )
-        return _to_api(doc) if doc else None
+        return res.scalar_one_or_none()
 
-    async def set_metadata(self, bookmark_id: str, *, title: str, description: str,
+    async def update(self, bookmark_id: int, workspace_id: int, *, fields: dict) -> dict | None:
+        b = await self._get(bookmark_id, workspace_id)
+        if b is None:
+            return None
+        for key, value in fields.items():
+            setattr(b, key, value)
+        await self.session.flush()
+        await self.session.refresh(b)
+        return _to_api(b)
+
+    async def set_metadata(self, bookmark_id: int, *, title: str, description: str,
                            favicon: str, fetched_meta: dict) -> dict | None:
-        oid = parse_object_id(bookmark_id)
-        if oid is None:
+        res = await self.session.execute(select(Bookmark).where(Bookmark.id == bookmark_id))
+        b = res.scalar_one_or_none()
+        if b is None:
             return None
-        doc = await self.col.find_one_and_update(
-            {"_id": oid},
-            {"$set": {"title": title, "description": description,
-                      "favicon": favicon, "fetched_meta": fetched_meta}},
-            return_document=True,
-        )
-        return _to_api(doc) if doc else None
+        b.title, b.description, b.favicon, b.fetched_meta = title, description, favicon, fetched_meta
+        await self.session.commit()
+        await self.session.refresh(b)
+        return _to_api(b)
 
-    async def delete(self, bookmark_id: str, workspace_id: int) -> bool:
-        oid = parse_object_id(bookmark_id)
-        if oid is None:
+    async def delete(self, bookmark_id: int, workspace_id: int) -> bool:
+        b = await self._get(bookmark_id, workspace_id)
+        if b is None:
             return False
-        res = await self.col.delete_one({"_id": oid, "workspace_id": workspace_id})
-        return res.deleted_count == 1
+        await self.session.delete(b)
+        await self.session.flush()
+        return True
 
     async def search(self, *, workspace_id: int, q: str, limit: int) -> list[dict]:
-        cursor = (
-            self.col.find({"workspace_id": workspace_id, "$text": {"$search": q}})
-            .sort([("score", {"$meta": "textScore"})])
+        stmt = (
+            select(Bookmark)
+            .where(Bookmark.workspace_id == workspace_id, _search_filter(self.session, q))
             .limit(limit)
         )
-        return [_to_api(doc) async for doc in cursor]
+        res = await self.session.execute(stmt)
+        return [_to_api(b) for b in res.scalars().all()]
 
     async def detach_project(self, project_id: int) -> None:
-        await self.col.update_many({"project_id": project_id},
-                                   {"$set": {"project_id": None}})
+        await self.session.execute(
+            update(Bookmark).where(Bookmark.project_id == project_id).values(project_id=None)
+        )
+        await self.session.flush()
 
     async def count_for_project(self, project_id: int) -> int:
-        return await self.col.count_documents({"project_id": project_id})
+        res = await self.session.execute(
+            select(func.count()).select_from(Bookmark).where(Bookmark.project_id == project_id)
+        )
+        return int(res.scalar_one())

@@ -1,3 +1,7 @@
+# annotations deferred: the `list` method would otherwise shadow the builtin
+# when later return annotations (`-> list[dict]`) are evaluated in the class body.
+from __future__ import annotations
+
 from sqlalchemy import String, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +26,7 @@ def _is_pg(session: AsyncSession) -> bool:
 
 def _tag_filter(session: AsyncSession, tag: str):
     if _is_pg(session):
-        return Snippet.tags.contains([tag])
+        return Snippet.tags.any(tag)  # tag = ANY(tags)
     # SQLite test tier: tags are JSON text like ["api","db"].
     return func.cast(Snippet.tags, String).like(f'%"{tag}"%')
 
@@ -53,7 +57,7 @@ class SnippetRepository:
                     language=language, code=code, tags=tags, notes=notes,
                     project_id=project_id)
         self.session.add(s)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(s)
         return _to_api(s)
 
@@ -88,7 +92,7 @@ class SnippetRepository:
             return None
         for key, value in fields.items():
             setattr(s, key, value)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(s)
         return _to_api(s)
 
@@ -97,7 +101,7 @@ class SnippetRepository:
         if s is None:
             return False
         await self.session.delete(s)
-        await self.session.commit()
+        await self.session.flush()
         return True
 
     async def search(self, *, workspace_id: int, q: str, limit: int) -> list[dict]:
@@ -113,7 +117,7 @@ class SnippetRepository:
         await self.session.execute(
             update(Snippet).where(Snippet.project_id == project_id).values(project_id=None)
         )
-        await self.session.commit()
+        await self.session.flush()
 
     async def count_for_project(self, project_id: int) -> int:
         res = await self.session.execute(

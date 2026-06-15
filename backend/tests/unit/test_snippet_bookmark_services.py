@@ -120,21 +120,8 @@ async def test_snippet_update_revalidates_new_project():
         await svc.update(s["id"], workspace_id=1, fields={"project_id": 99})
 
 
-@pytest.mark.asyncio
-async def test_bookmark_fetch_and_store_meta():
-    repo = FakeBookmarkRepo()
-
-    async def fake_fetch(url: str) -> str:
-        return "<title>Fetched Page</title><meta name='description' content='Desc'>"
-
-    svc = BookmarkService(repo, FakeProjectRepo(), fetch_html=fake_fetch)
-    b = await svc.create(workspace_id=1, owner_id=1, url="https://example.com/x",
-                         tags=[], project_id=None)
-    await svc.fetch_and_store_meta(b["id"], b["url"])
-    stored = repo.docs[b["id"]]
-    assert stored["title"] == "Fetched Page"
-    assert stored["description"] == "Desc"
-    assert stored["favicon"] == "https://example.com/favicon.ico"
+# The metadata-fetch success path opens its own DB session (it runs after the
+# request), so it is covered end-to-end by test_bookmarks_api rather than faked here.
 
 
 @pytest.mark.asyncio

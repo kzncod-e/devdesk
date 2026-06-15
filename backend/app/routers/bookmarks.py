@@ -36,16 +36,16 @@ async def list_bookmarks(ctx: Reader, svc: Service,
 
 
 @router.get("/{bookmark_id}", response_model=BookmarkOut)
-async def get_bookmark(bookmark_id: str, ctx: Reader, svc: Service):
+async def get_bookmark(bookmark_id: int, ctx: Reader, svc: Service):
     return await svc.get(bookmark_id, ctx.workspace_id)
 
 
 @router.patch("/{bookmark_id}", response_model=BookmarkOut)
-async def patch_bookmark(bookmark_id: str, body: BookmarkPatch, ctx: Writer, svc: Service):
+async def patch_bookmark(bookmark_id: int, body: BookmarkPatch, ctx: Writer, svc: Service):
     return await svc.update(bookmark_id, ctx.workspace_id,
                             fields=body.model_dump(exclude_unset=True))
 
 
 @router.delete("/{bookmark_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_bookmark(bookmark_id: str, ctx: Deleter, svc: Service):
+async def delete_bookmark(bookmark_id: int, ctx: Deleter, svc: Service):
     await svc.delete(bookmark_id, ctx.workspace_id)

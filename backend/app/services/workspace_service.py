@@ -4,6 +4,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, UnprocessableError
+from app.core.events import emit
 from app.core.policy import Role, is_valid_role, rank
 from app.models.workspace import Membership
 from app.repositories.user_repo import UserRepository
@@ -45,6 +46,8 @@ class WorkspaceService:
             slug = f"{slug}-{secrets.token_hex(3)}"
         ws = await self.workspaces.create(name=name, slug=slug, created_by=user_id)
         await self.memberships.add(workspace_id=ws.id, user_id=user_id, role=Role.OWNER)
+        await emit(self.session, "workspace.created",
+                   {"name": name, "slug": slug, "owner_id": user_id})
         await self.session.commit()
         await self.session.refresh(ws)
         return ws
@@ -79,6 +82,10 @@ class WorkspaceService:
         if target.role == Role.OWNER and new_role != Role.OWNER:
             await self._guard_not_last_owner(workspace_id)
         updated = await self.memberships.update(target, role=new_role)
+        await emit(self.session, "member.role_changed",
+                   {"workspace_id": workspace_id, "user_id": target_user_id,
+                    "old_role": target.role, "new_role": new_role},
+                   workspace_id=workspace_id)
         await self.session.commit()
         return updated
 
@@ -90,6 +97,9 @@ class WorkspaceService:
         if target.role == Role.OWNER:
             await self._guard_not_last_owner(workspace_id)
         await self.memberships.delete(target)
+        await emit(self.session, "member.removed",
+                   {"workspace_id": workspace_id, "user_id": target_user_id},
+                   workspace_id=workspace_id)
         await self.session.commit()
 
     # ── Invites ───────────────────────────────────────────────────────────
@@ -107,6 +117,10 @@ class WorkspaceService:
             workspace_id=workspace_id, email=email, role=role,
             token_hash=_hash_token(token), invited_by=actor.user_id, expires_at=expires,
         )
+        await emit(self.session, "member.invited",
+                   {"workspace_id": workspace_id, "email": email, "role": role,
+                    "invited_by": actor.user_id},
+                   workspace_id=workspace_id)
         await self.session.commit()
         await self.session.refresh(invite)
         return invite, token
@@ -136,6 +150,10 @@ class WorkspaceService:
         else:
             await self.memberships.update(membership, status="active", role=invite.role)
         invite.accepted_at = datetime.now(timezone.utc)
+        await emit(self.session, "member.joined",
+                   {"workspace_id": invite.workspace_id, "user_id": user.id,
+                    "role": invite.role},
+                   workspace_id=invite.workspace_id)
         await self.session.commit()
         return membership
 

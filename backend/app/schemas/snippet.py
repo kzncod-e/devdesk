@@ -22,7 +22,7 @@ class SnippetPatch(BaseModel):
 
 
 class SnippetOut(BaseModel):
-    id: str
+    id: int
     project_id: int | None
     title: str
     language: str

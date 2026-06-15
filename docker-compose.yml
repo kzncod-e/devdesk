@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -15,23 +25,16 @@ services:
       timeout: 3s
       retries: 10
 
-  mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodata:/data/db
-
   api:
     build: ./backend
     develop:
       watch:
         - action: sync
           path: ./backend
-          target: /app
+          target: /srv
     environment:
       DATABASE_URL: postgresql+asyncpg://devdesk:devdesk@postgres:5432/devdesk
-      MONGO_URL: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-only-secret-change-me
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
@@ -40,6 +43,29 @@ services:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./backend
+    command: arq app.platform.worker.WorkerSettings
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /srv
+    environment:
+      DATABASE_URL: postgresql+asyncpg://devdesk:devdesk@postgres:5432/devdesk
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-only-secret-change-me
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-placeholder}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-placeholder}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-placeholder}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   nuxt:
@@ -62,4 +88,3 @@ services:
 
 volumes:
   pgdata:
-  mongodata:

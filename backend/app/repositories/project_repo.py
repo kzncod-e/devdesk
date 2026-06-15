@@ -22,7 +22,7 @@ class ProjectRepository:
         project = Project(workspace_id=workspace_id, owner_id=owner_id, name=name,
                           description=description, color=color)
         self.session.add(project)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(project)
         return project
 
@@ -58,10 +58,10 @@ class ProjectRepository:
         for key, value in fields.items():
             if value is not None:
                 setattr(project, key, value)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(project)
         return project
 
     async def delete(self, project: Project) -> None:
         await self.session.delete(project)
-        await self.session.commit()
+        await self.session.flush()

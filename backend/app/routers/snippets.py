@@ -35,16 +35,16 @@ async def list_snippets(ctx: Reader, svc: Service,
 
 
 @router.get("/{snippet_id}", response_model=SnippetOut)
-async def get_snippet(snippet_id: str, ctx: Reader, svc: Service):
+async def get_snippet(snippet_id: int, ctx: Reader, svc: Service):
     return await svc.get(snippet_id, ctx.workspace_id)
 
 
 @router.patch("/{snippet_id}", response_model=SnippetOut)
-async def patch_snippet(snippet_id: str, body: SnippetPatch, ctx: Writer, svc: Service):
+async def patch_snippet(snippet_id: int, body: SnippetPatch, ctx: Writer, svc: Service):
     return await svc.update(snippet_id, ctx.workspace_id,
                             fields=body.model_dump(exclude_unset=True))
 
 
 @router.delete("/{snippet_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_snippet(snippet_id: str, ctx: Deleter, svc: Service):
+async def delete_snippet(snippet_id: int, ctx: Deleter, svc: Service):
     await svc.delete(snippet_id, ctx.workspace_id)

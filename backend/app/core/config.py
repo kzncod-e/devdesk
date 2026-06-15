@@ -10,8 +10,6 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+asyncpg://devdesk:devdesk@localhost:5432/devdesk"
-    mongo_url: str = "mongodb://localhost:27017"
-    mongo_db_name: str = "devdesk"
 
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
@@ -20,6 +18,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = 7
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    redis_url: str = "redis://localhost:6379"
 
     cloudinary_cloud_name: str
     cloudinary_api_key: str

@@ -81,7 +81,7 @@ export interface ProjectSummary {
 }
 
 export interface Snippet {
-  id: string
+  id: number
   project_id: number | null
   title: string
   language: string
@@ -91,7 +91,7 @@ export interface Snippet {
 }
 
 export interface Bookmark {
-  id: string
+  id: number
   project_id: number | null
   url: string
   title: string

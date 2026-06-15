@@ -1,8 +1,13 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.errors import NotFoundError
+from app.core.events import emit
 
 
 class ProjectService:
-    def __init__(self, repo, task_repo=None, snippet_repo=None, bookmark_repo=None) -> None:
+    def __init__(self, session: AsyncSession, repo, task_repo=None,
+                 snippet_repo=None, bookmark_repo=None) -> None:
+        self.session = session
         self.repo = repo
         self.task_repo = task_repo
         self.snippet_repo = snippet_repo
@@ -10,8 +15,15 @@ class ProjectService:
 
     async def create(self, *, workspace_id: int, owner_id: int, name: str,
                      description: str = "", color: str = "#6366f1"):
-        return await self.repo.create(workspace_id=workspace_id, owner_id=owner_id,
-                                      name=name, description=description, color=color)
+        project = await self.repo.create(
+            workspace_id=workspace_id, owner_id=owner_id,
+            name=name, description=description, color=color,
+        )
+        await emit(self.session, "project.created",
+                   {"id": project.id, "name": project.name, "owner_id": owner_id},
+                   workspace_id=workspace_id)
+        await self.session.commit()
+        return project
 
     async def list(self, workspace_id: int, *, limit: int = 50, offset: int = 0):
         return await self.repo.list_for_workspace(workspace_id, limit=limit, offset=offset)
@@ -24,17 +36,23 @@ class ProjectService:
 
     async def update(self, project_id: int, workspace_id: int, **fields):
         project = await self.get(project_id, workspace_id)
-        return await self.repo.update(project, **fields)
+        updated = await self.repo.update(project, **fields)
+        await emit(self.session, "project.updated",
+                   {"id": project_id, **{k: v for k, v in fields.items() if v is not None}},
+                   workspace_id=workspace_id)
+        await self.session.commit()
+        return updated
 
     async def delete(self, project_id: int, workspace_id: int) -> None:
         project = await self.get(project_id, workspace_id)
         await self.repo.delete(project)
-        # detach (not delete) associated Mongo docs so general-purpose value
-        # isn't lost — spec §2 decision
         if self.snippet_repo is not None:
             await self.snippet_repo.detach_project(project_id)
         if self.bookmark_repo is not None:
             await self.bookmark_repo.detach_project(project_id)
+        await emit(self.session, "project.deleted",
+                   {"id": project_id}, workspace_id=workspace_id)
+        await self.session.commit()
 
     async def summary(self, project_id: int, workspace_id: int) -> dict:
         await self.get(project_id, workspace_id)

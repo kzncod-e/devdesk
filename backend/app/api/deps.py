@@ -2,13 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pymongo.asynchronous.database import AsyncDatabase
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings, get_settings
 from app.core.errors import ForbiddenError
-from app.db.mongo import get_mongo_db
-from app.db.postgres import get_session
+from app.db.postgres import SessionLocal, get_session
 from app.repositories.bookmark_repo import BookmarkRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.snippet_repo import SnippetRepository
@@ -31,7 +29,15 @@ from app.services.workspace_service import WorkspaceService
 bearer = HTTPBearer(auto_error=True)
 
 Session = Annotated[AsyncSession, Depends(get_session)]
-MongoDb = Annotated[AsyncDatabase, Depends(get_mongo_db)]
+
+
+def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
+    """Session factory for work that outlives the request (e.g. background
+    metadata fetches). Overridden in tests to the test engine's maker."""
+    return SessionLocal
+
+
+Maker = Annotated[async_sessionmaker[AsyncSession], Depends(get_sessionmaker)]
 
 
 def get_auth_service(
@@ -49,23 +55,24 @@ def get_auth_service(
     )
 
 
-def get_project_service(session: Session, mongo_db: MongoDb) -> ProjectService:
+def get_project_service(session: Session) -> ProjectService:
     return ProjectService(
+        session,
         ProjectRepository(session),
         task_repo=TaskRepository(session),
-        snippet_repo=SnippetRepository(mongo_db),
-        bookmark_repo=BookmarkRepository(mongo_db),
+        snippet_repo=SnippetRepository(session),
+        bookmark_repo=BookmarkRepository(session),
     )
 
 
 def get_task_service(session: Session) -> TaskService:
     return TaskService(
-        TaskRepository(session), ProjectRepository(session), UserRepository(session)
+        session, TaskRepository(session), ProjectRepository(session), UserRepository(session)
     )
 
 
-def get_snippet_service(session: Session, mongo_db: MongoDb) -> SnippetService:
-    return SnippetService(SnippetRepository(mongo_db), ProjectRepository(session))
+def get_snippet_service(session: Session) -> SnippetService:
+    return SnippetService(session, SnippetRepository(session), ProjectRepository(session))
 
 
 def get_html_fetcher() -> FetchHtml:
@@ -74,19 +81,19 @@ def get_html_fetcher() -> FetchHtml:
 
 def get_bookmark_service(
     session: Session,
-    mongo_db: MongoDb,
+    maker: Maker,
     fetch_html: Annotated[FetchHtml, Depends(get_html_fetcher)],
 ) -> BookmarkService:
-    return BookmarkService(BookmarkRepository(mongo_db), ProjectRepository(session),
-                           fetch_html=fetch_html)
+    return BookmarkService(session, BookmarkRepository(session), ProjectRepository(session),
+                           fetch_html=fetch_html, session_factory=maker)
 
 
-def get_search_service(session: Session, mongo_db: MongoDb) -> SearchService:
+def get_search_service(session: Session) -> SearchService:
     return SearchService(
         ProjectRepository(session),
         TaskRepository(session),
-        SnippetRepository(mongo_db),
-        BookmarkRepository(mongo_db),
+        SnippetRepository(session),
+        BookmarkRepository(session),
     )
 
 

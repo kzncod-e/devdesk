@@ -15,7 +15,7 @@ class BookmarkPatch(BaseModel):
 
 
 class BookmarkOut(BaseModel):
-    id: str
+    id: int
     project_id: int | None
     url: str
     title: str
