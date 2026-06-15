@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
-import type { Member, User, WorkspaceRole } from '~/types/api'
+import type { AuditLog, AuditPage, Member, User, WorkspaceRole } from '~/types/api'
 
 definePageMeta({ middleware: 'auth', layout: 'app' })
 
@@ -120,6 +120,53 @@ const roleTone: Record<string, 'indigo' | 'amber' | 'red'> = {
   member: 'indigo',
   manager: 'amber',
   admin: 'red',
+}
+
+// ── Audit log (workspace owner / admin only) ──────────────────────
+const auditAction = ref('')
+const auditCursor = ref<number | null>(null)
+
+const auditQueryKey = computed(() => [
+  'workspace-audit', workspaceId.value, auditAction.value,
+])
+
+const canViewAudit = computed(
+  () => currentWorkspace.value?.role === 'owner' || currentWorkspace.value?.role === 'admin',
+)
+
+const { data: auditPage, isPending: loadingAudit } = useQuery({
+  queryKey: auditQueryKey,
+  queryFn: () => {
+    const params = new URLSearchParams({ limit: '50' })
+    if (auditAction.value) params.set('action', auditAction.value)
+    if (auditCursor.value) params.set('before', String(auditCursor.value))
+    return api<AuditPage>(`/api/v1/workspaces/${workspaceId.value}/audit?${params}`)
+  },
+  enabled: computed(() => !!workspaceId.value && canViewAudit.value),
+})
+
+const auditRows = computed(() => auditPage.value?.items ?? [])
+
+const AUDIT_ACTIONS = [
+  '', 'workspace.created',
+  'project.created', 'project.updated', 'project.deleted',
+  'task.created', 'task.updated', 'task.deleted', 'task.status_changed',
+  'snippet.created', 'snippet.deleted',
+  'bookmark.created', 'bookmark.deleted',
+  'member.invited', 'member.joined', 'member.role_changed', 'member.removed',
+]
+
+function auditTimeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function auditSummary(row: AuditLog): string {
+  return [row.action, row.target_type, row.target_id ? `#${row.target_id}` : '']
+    .filter(Boolean).join(' · ')
 }
 </script>
 
@@ -269,6 +316,81 @@ const roleTone: Record<string, 'indigo' | 'amber' | 'red'> = {
           <UiBadge v-else tone="indigo" class="capitalize">{{ m.role }}</UiBadge>
         </li>
       </ul>
+    </section>
+
+    <!-- Audit log (workspace owner / admin only) -->
+    <section v-if="canViewAudit" class="mb-8 rounded-xl border border-line bg-surface p-6 shadow-card">
+      <h2 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink">
+        <span class="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent">
+          <UiIcon name="list" :size="15" />
+        </span>
+        Audit Log
+        <span class="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-muted">Owner / Admin</span>
+      </h2>
+      <p class="mb-4 text-sm text-ink-muted">
+        Immutable record of all workspace actions.
+      </p>
+
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <label class="flex flex-col gap-1">
+          <span class="field-label">Filter by action</span>
+          <select v-model="auditAction" class="field-input w-56 py-1.5 text-xs">
+            <option value="">All actions</option>
+            <option v-for="a in AUDIT_ACTIONS.slice(1)" :key="a" :value="a">{{ a }}</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- skeleton -->
+      <div v-if="loadingAudit" class="flex flex-col divide-y divide-line">
+        <div v-for="i in 5" :key="i" class="flex items-center gap-3 py-3">
+          <UiSkeleton class="h-3 w-40" />
+          <UiSkeleton class="h-3 w-28" />
+          <div class="ml-auto">
+            <UiSkeleton class="h-3 w-20" />
+          </div>
+        </div>
+      </div>
+
+      <!-- empty -->
+      <p v-else-if="!auditRows.length" class="py-6 text-center text-sm text-ink-subtle">
+        No audit events yet.
+      </p>
+
+      <!-- table -->
+      <div v-else class="overflow-x-auto rounded-lg border border-line">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-line bg-surface-2 text-left text-ink-muted">
+              <th class="px-3 py-2 font-medium">Action</th>
+              <th class="px-3 py-2 font-medium">Actor</th>
+              <th class="px-3 py-2 font-medium">Target</th>
+              <th class="px-3 py-2 font-medium">When</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            <tr
+              v-for="row in auditRows"
+              :key="row.id"
+              class="group hover:bg-surface-2"
+            >
+              <td class="px-3 py-2 font-mono text-ink">{{ row.action }}</td>
+              <td class="px-3 py-2 text-ink-muted">{{ row.actor_name ?? '—' }}</td>
+              <td class="px-3 py-2 text-ink-muted">
+                <span v-if="row.target_type">
+                  {{ row.target_type }}<span v-if="row.target_id" class="ml-1 text-ink-subtle">#{{ row.target_id }}</span>
+                </span>
+                <span v-else class="text-ink-subtle">—</span>
+              </td>
+              <td class="px-3 py-2 text-ink-subtle">{{ auditTimeAgo(row.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p v-if="auditPage?.next_cursor" class="mt-3 text-center text-xs text-ink-subtle">
+        Showing first 50 events. Keyset pagination cursor: {{ auditPage.next_cursor }}
+      </p>
     </section>
 
     <!-- User management (admin only) -->
