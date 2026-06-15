@@ -17,6 +17,9 @@ import app.models.workspace  # noqa: F401
 import app.models.snippet  # noqa: F401
 import app.models.bookmark  # noqa: F401
 import app.models.outbox  # noqa: F401
+import app.models.activity  # noqa: F401
+import app.models.audit_log  # noqa: F401
+import app.platform.handlers.activity  # noqa: F401  — registers all outbox handlers
 
 
 @asynccontextmanager

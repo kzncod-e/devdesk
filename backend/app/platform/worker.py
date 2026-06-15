@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.postgres import SessionLocal
 from app.models.outbox import OutboxEvent
 from app.platform.handlers import dispatch
+import app.platform.handlers.activity  # noqa: F401  — registers all handlers
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,10 @@ async def poll_outbox(ctx: dict) -> None:
 
         for event in events:
             try:
-                await dispatch(event.topic, event.payload)
+                await dispatch(
+                    event.topic, event.payload,
+                    workspace_id=event.workspace_id, session=session,
+                )
                 event.processed_at = datetime.now(timezone.utc)
             except Exception as exc:
                 event.attempts += 1

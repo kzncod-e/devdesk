@@ -100,3 +100,38 @@ export interface Bookmark {
   favicon: string
   fetched_meta: Record<string, string>
 }
+
+export interface Activity {
+  id: number
+  workspace_id: number
+  actor_id: number | null
+  actor_name: string | null
+  verb: string
+  entity_type: string
+  entity_id: number | null
+  entity_name: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface AuditLog {
+  id: number
+  workspace_id: number
+  actor_id: number | null
+  actor_name: string | null
+  action: string
+  target_type: string | null
+  target_id: number | null
+  after_state: Record<string, unknown>
+  created_at: string
+}
+
+export interface ActivityPage {
+  items: Activity[]
+  next_cursor: number | null
+}
+
+export interface AuditPage {
+  items: AuditLog[]
+  next_cursor: number | null
+}

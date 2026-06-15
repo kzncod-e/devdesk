@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings, get_settings
+from app.core.context import current_actor_id
 from app.core.errors import ForbiddenError
 from app.db.postgres import SessionLocal, get_session
 from app.repositories.bookmark_repo import BookmarkRepository
@@ -115,7 +116,9 @@ async def get_current_user(
     creds: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
 ):
-    return await auth.get_user(creds.credentials)
+    user = await auth.get_user(creds.credentials)
+    current_actor_id.set(user.id)
+    return user
 
 
 async def get_admin_user(user=Depends(get_current_user)):

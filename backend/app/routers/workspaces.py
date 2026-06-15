@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_current_user, get_workspace_service
 from app.api.tenancy import require_member
 from app.core.policy import Perm
 from app.models.workspace import Membership
+from app.repositories.activity_repo import ActivityRepository
+from app.repositories.audit_repo import AuditRepository
 from app.schemas.workspace import (
     AcceptInviteIn,
     InviteCreatedOut,
@@ -17,6 +19,8 @@ from app.schemas.workspace import (
     WorkspaceWithRoleOut,
 )
 from app.services.workspace_service import WorkspaceService
+from app.db.postgres import get_session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1", tags=["workspaces"])
 
@@ -24,6 +28,8 @@ CurrentUser = Annotated[object, Depends(get_current_user)]
 Service = Annotated[WorkspaceService, Depends(get_workspace_service)]
 Manager = Annotated[Membership, Depends(require_member(Perm.MEMBER_MANAGE))]
 AnyMember = Annotated[Membership, Depends(require_member())]
+AuditReader = Annotated[Membership, Depends(require_member(Perm.WORKSPACE_MANAGE))]
+Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 @router.post("/workspaces", response_model=WorkspaceWithRoleOut,
@@ -83,3 +89,39 @@ async def remove_member(workspace_id: int, user_id: int, svc: Service, actor: Ma
 async def accept_invite(body: AcceptInviteIn, user: CurrentUser, svc: Service):
     membership = await svc.accept_invite(user=user, token=body.token)
     return {"workspace_id": membership.workspace_id, "role": membership.role}
+
+
+# ── Activity feed ────────────────────────────────────────────────────────────
+
+@router.get("/workspaces/{workspace_id}/activity")
+async def get_activity(
+    workspace_id: int,
+    session: Session,
+    _: AnyMember,
+    before: int | None = Query(default=None),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    rows = await ActivityRepository(session).list_for_workspace(
+        workspace_id, before_id=before, limit=limit
+    )
+    next_cursor = rows[-1]["id"] if len(rows) == limit else None
+    return {"items": rows, "next_cursor": next_cursor}
+
+
+# ── Audit log ────────────────────────────────────────────────────────────────
+
+@router.get("/workspaces/{workspace_id}/audit")
+async def get_audit_log(
+    workspace_id: int,
+    session: Session,
+    _: AuditReader,
+    before: int | None = Query(default=None),
+    action: str | None = Query(default=None),
+    actor_id: int | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    rows = await AuditRepository(session).list_for_workspace(
+        workspace_id, before_id=before, action=action, actor_id=actor_id, limit=limit
+    )
+    next_cursor = rows[-1]["id"] if len(rows) == limit else None
+    return {"items": rows, "next_cursor": next_cursor}

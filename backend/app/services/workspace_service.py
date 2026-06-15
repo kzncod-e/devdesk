@@ -47,7 +47,8 @@ class WorkspaceService:
         ws = await self.workspaces.create(name=name, slug=slug, created_by=user_id)
         await self.memberships.add(workspace_id=ws.id, user_id=user_id, role=Role.OWNER)
         await emit(self.session, "workspace.created",
-                   {"name": name, "slug": slug, "owner_id": user_id})
+                   {"id": ws.id, "name": name, "slug": slug, "owner_id": user_id},
+                   workspace_id=ws.id)
         await self.session.commit()
         await self.session.refresh(ws)
         return ws

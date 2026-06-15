@@ -5,6 +5,17 @@ from app.services.bookmark_service import BookmarkService
 from app.services.snippet_service import SnippetService
 
 
+class FakeSession:
+    def add(self, obj):
+        pass
+
+    async def commit(self):
+        pass
+
+    async def flush(self):
+        pass
+
+
 class FakeProjectRepo:
     def __init__(self, in_workspace: dict[int, int] | None = None):
         # project_id -> workspace_id
@@ -20,7 +31,7 @@ class FakeDocRepo:
         self._next = 1
 
     def _store(self, doc):
-        doc_id = str(self._next)
+        doc_id = self._next
         self._next += 1
         doc["id"] = doc_id
         self.docs[doc_id] = doc
@@ -78,7 +89,7 @@ class FakeBookmarkRepo(FakeDocRepo):
 
 @pytest.mark.asyncio
 async def test_snippet_create_validates_project_in_workspace():
-    svc = SnippetService(FakeSnippetRepo(), FakeProjectRepo({7: 1}))
+    svc = SnippetService(FakeSession(), FakeSnippetRepo(), FakeProjectRepo({7: 1}))
     s = await svc.create(workspace_id=1, owner_id=1, title="T", language="py", code="x",
                          tags=[], notes="", project_id=7)
     assert s["project_id"] == 7
@@ -94,7 +105,7 @@ async def test_snippet_create_validates_project_in_workspace():
 
 @pytest.mark.asyncio
 async def test_snippet_get_update_delete_workspace_scoped():
-    svc = SnippetService(FakeSnippetRepo(), FakeProjectRepo())
+    svc = SnippetService(FakeSession(), FakeSnippetRepo(), FakeProjectRepo())
     s = await svc.create(workspace_id=1, owner_id=1, title="T", language="py", code="x",
                          tags=[], notes="", project_id=None)
     assert (await svc.get(s["id"], workspace_id=1))["title"] == "T"
@@ -111,7 +122,7 @@ async def test_snippet_get_update_delete_workspace_scoped():
 
 @pytest.mark.asyncio
 async def test_snippet_update_revalidates_new_project():
-    svc = SnippetService(FakeSnippetRepo(), FakeProjectRepo({7: 1}))
+    svc = SnippetService(FakeSession(), FakeSnippetRepo(), FakeProjectRepo({7: 1}))
     s = await svc.create(workspace_id=1, owner_id=1, title="T", language="py", code="x",
                          tags=[], notes="", project_id=None)
     moved = await svc.update(s["id"], workspace_id=1, fields={"project_id": 7})
@@ -131,7 +142,7 @@ async def test_bookmark_fetch_errors_leave_doc_untouched():
     async def broken_fetch(url: str) -> str:
         raise RuntimeError("network down")
 
-    svc = BookmarkService(repo, FakeProjectRepo(), fetch_html=broken_fetch)
+    svc = BookmarkService(FakeSession(), repo, FakeProjectRepo(), fetch_html=broken_fetch)
     b = await svc.create(workspace_id=1, owner_id=1, url="https://example.com/x",
                          tags=[], project_id=None)
     await svc.fetch_and_store_meta(b["id"], b["url"])  # must not raise

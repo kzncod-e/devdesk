@@ -67,11 +67,22 @@ class FakeUserRepo:
         return []
 
 
+class FakeSession:
+    def add(self, obj):
+        pass
+
+    async def commit(self):
+        pass
+
+    async def flush(self):
+        pass
+
+
 @pytest.fixture
 def env():
     projects = FakeProjectRepo()
     tasks = FakeTaskRepo(projects)
-    return projects, tasks, TaskService(tasks, projects, FakeUserRepo())
+    return projects, tasks, TaskService(FakeSession(), tasks, projects, FakeUserRepo())
 
 
 @pytest.mark.asyncio

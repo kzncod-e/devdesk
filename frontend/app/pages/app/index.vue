@@ -1,13 +1,54 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
-import type { Project } from '~/types/api'
+import type { Activity, ActivityPage, Project } from '~/types/api'
 
 definePageMeta({ middleware: 'auth', layout: 'app' })
 
 const { api } = useAuth()
 const { uploadProjectImage } = useCloudinaryUpload()
 const queryClient = useQueryClient()
+const { workspaceId } = useWorkspace()
+
+// ── Activity feed ─────────────────────────────────────────────────────────────
+const { data: activityPage } = useQuery({
+  queryKey: computed(() => ['workspace-activity', workspaceId.value]),
+  queryFn: () =>
+    api<ActivityPage>(`/api/v1/workspaces/${workspaceId.value}/activity?limit=20`),
+  enabled: computed(() => workspaceId.value != null),
+  refetchInterval: 30_000,
+})
+
+const activities = computed(() => activityPage.value?.items ?? [])
+
+const VERB_ICON: Record<string, string> = {
+  created: 'plus',
+  updated: 'edit',
+  deleted: 'trash',
+  status_changed: 'check-circle',
+  assignees_changed: 'user',
+  invited: 'user-plus',
+  joined: 'user-check',
+  role_changed: 'shield',
+  removed: 'user-minus',
+}
+
+function activityIcon(verb: string): string {
+  return VERB_ICON[verb] ?? 'activity'
+}
+
+function activityLabel(a: Activity): string {
+  const name = a.entity_name ? ` "${a.entity_name}"` : ''
+  return `${a.verb.replace(/_/g, ' ')} ${a.entity_type}${name}`
+}
+
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
 const { confirm } = useConfirm()
 const { success, error } = useToast()
 

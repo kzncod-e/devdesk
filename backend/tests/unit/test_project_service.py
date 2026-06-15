@@ -4,6 +4,17 @@ from app.core.errors import NotFoundError
 from app.services.project_service import ProjectService
 
 
+class FakeSession:
+    def add(self, obj):
+        pass
+
+    async def commit(self):
+        pass
+
+    async def flush(self):
+        pass
+
+
 class FakeProjectRepo:
     def __init__(self):
         self.items = {}
@@ -55,9 +66,13 @@ class FakeDocRepo:
         self.detached.append(project_id)
 
 
+def _svc(**kwargs) -> ProjectService:
+    return ProjectService(FakeSession(), FakeProjectRepo(), **kwargs)
+
+
 @pytest.mark.asyncio
 async def test_summary_counts_tasks_snippets_and_bookmarks():
-    svc = ProjectService(FakeProjectRepo(),
+    svc = ProjectService(FakeSession(), FakeProjectRepo(),
                          task_repo=FakeTaskCounts({"todo": 2, "done": 1}),
                          snippet_repo=FakeDocRepo(count=4),
                          bookmark_repo=FakeDocRepo(count=2))
@@ -76,8 +91,8 @@ async def test_summary_counts_tasks_snippets_and_bookmarks():
 async def test_delete_detaches_mongo_docs():
     snippets = FakeDocRepo()
     bookmarks = FakeDocRepo()
-    svc = ProjectService(FakeProjectRepo(), snippet_repo=snippets,
-                         bookmark_repo=bookmarks)
+    svc = ProjectService(FakeSession(), FakeProjectRepo(),
+                         snippet_repo=snippets, bookmark_repo=bookmarks)
     p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
     await svc.delete(p.id, workspace_id=1)
     assert snippets.detached == [p.id]
@@ -86,7 +101,7 @@ async def test_delete_detaches_mongo_docs():
 
 @pytest.mark.asyncio
 async def test_get_project_in_other_workspace_raises_not_found():
-    svc = ProjectService(FakeProjectRepo())
+    svc = _svc()
     p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
     with pytest.raises(NotFoundError):
         await svc.get(p.id, workspace_id=2)
@@ -94,7 +109,7 @@ async def test_get_project_in_other_workspace_raises_not_found():
 
 @pytest.mark.asyncio
 async def test_update_and_delete_are_workspace_scoped():
-    svc = ProjectService(FakeProjectRepo())
+    svc = _svc()
     p = await svc.create(workspace_id=1, owner_id=1, name="Mine")
     updated = await svc.update(p.id, workspace_id=1, name="Renamed", status="archived")
     assert updated.name == "Renamed" and updated.status == "archived"
