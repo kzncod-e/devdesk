@@ -20,6 +20,7 @@ import app.models.bookmark  # noqa: F401
 import app.models.outbox  # noqa: F401
 import app.models.activity  # noqa: F401
 import app.models.audit_log  # noqa: F401
+import app.models.notification  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)

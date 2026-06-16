@@ -21,6 +21,14 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379"
 
+    app_base_url: str = "http://localhost:3000"
+
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@devdesk.app"
+
     cloudinary_cloud_name: str
     cloudinary_api_key: str
     cloudinary_api_secret: str

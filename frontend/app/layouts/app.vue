@@ -12,6 +12,10 @@ const { show: showPalette } = useCommandPalette();
 const { isReady, hasOnboarded, markReady } = useAppReady();
 const { success, error: toastError } = useToast();
 const {
+  unreadCount,
+  refetchUnread,
+} = useNotifications();
+const {
   workspaces,
   workspaceId,
   current: currentWorkspace,
@@ -20,9 +24,10 @@ const {
   createWorkspace,
 } = useWorkspace();
 
-// Load the user's workspaces once on entry (CSR-only shell).
+// Load workspaces + poll unread notifications on entry (CSR-only shell).
 onMounted(() => {
   loadWorkspaces().catch(() => {});
+  refetchUnread().catch(() => {});
 });
 
 // New-workspace modal
@@ -316,13 +321,21 @@ const initials = computed(() =>
             "
             @click="toggleTheme"
           />
-          <span class="relative">
-            <UiIconButton icon="bell" label="Notifications" />
-            <span
-              class="pointer-events-none absolute right-1.5 top-1.5 size-2 rounded-full bg-accent ring-2 ring-surface"
-              aria-hidden="true"
-            />
-          </span>
+          <UiMenu align="right">
+            <template #trigger>
+              <span class="relative inline-flex">
+                <UiIconButton icon="bell" label="Notifications" />
+                <span
+                  v-if="unreadCount > 0"
+                  class="pointer-events-none absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-4 text-accent-fg ring-2 ring-surface"
+                  aria-hidden="true"
+                >
+                  {{ unreadCount > 9 ? '9+' : unreadCount }}
+                </span>
+              </span>
+            </template>
+            <NotificationPanel @close="() => {}" />
+          </UiMenu>
           <UiMenu align="right">
             <template #trigger>
               <button

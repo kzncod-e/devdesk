@@ -28,18 +28,38 @@ class TaskService:
             position=position, description=description, priority=priority,
             due_date=due_date, assignees=assignees,
         )
-        await emit(self.session, "task.created",
-                   {"id": task.id, "project_id": project_id, "title": title},
-                   workspace_id=workspace_id)
+        await emit(
+            self.session,
+            "task.created",
+            {
+                "id": task.id,
+                "project_id": project_id,
+                "title": title,
+                "assignee_ids": [u.id for u in assignees],
+            },
+            workspace_id=workspace_id,
+        )
         await self.session.commit()
         return task
 
     async def set_assignees(self, task_id: int, workspace_id: int, user_ids: list[int]):
         task = await self._require_task(task_id, workspace_id)
+        old_ids = {u.id for u in task.assignees}
         users = await self.user_repo.get_by_ids(user_ids)
         updated = await self.task_repo.set_assignees(task, users)
-        await emit(self.session, "task.assignees_changed",
-                   {"id": task_id, "user_ids": user_ids}, workspace_id=workspace_id)
+        added = [uid for uid in user_ids if uid not in old_ids]
+        await emit(
+            self.session,
+            "task.assignees_changed",
+            {
+                "id": task_id,
+                "user_ids": user_ids,
+                "added_user_ids": added,
+                "title": task.title,
+                "project_id": task.project_id,
+            },
+            workspace_id=workspace_id,
+        )
         await self.session.commit()
         return updated
 

@@ -15,9 +15,7 @@ STUB_HTML = """<html><head>
 
 
 @pytest.fixture
-async def client():
-    # in-memory SQLite keeps API tests fast; Postgres-specific SQL (FTS, arrays)
-    # is covered by the testcontainers integration tier.
+async def db_maker():
     engine = create_async_engine(
         "sqlite+aiosqlite://", connect_args={"check_same_thread": False},
         poolclass=StaticPool,
@@ -25,24 +23,27 @@ async def client():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)
+    yield maker
+    await engine.dispose()
 
+
+@pytest.fixture
+async def client(db_maker):
     app = create_app()
 
     async def override_session():
-        async with maker() as s:
+        async with db_maker() as s:
             yield s
 
     async def stub_fetch_html(url: str) -> str:
         return STUB_HTML
 
     app.dependency_overrides[get_session] = override_session
-    # Background bookmark metadata fetch opens its own session from this maker.
-    app.dependency_overrides[get_sessionmaker] = lambda: maker
+    app.dependency_overrides[get_sessionmaker] = lambda: db_maker
     app.dependency_overrides[get_html_fetcher] = lambda: stub_fetch_html
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
-    await engine.dispose()
 
 
 async def register_and_login(client, email="user@test.dev", password="pw123456",

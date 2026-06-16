@@ -135,3 +135,19 @@ export interface AuditPage {
   items: AuditLog[]
   next_cursor: number | null
 }
+
+export type NotificationType = 'task.assigned' | 'workspace.invite' | 'member.role_changed'
+
+export interface Notification {
+  id: number
+  workspace_id: number
+  type: NotificationType
+  payload: Record<string, unknown>
+  read_at: string | null
+  created_at: string
+}
+
+export interface NotificationPage {
+  items: Notification[]
+  next_cursor: number | null
+}

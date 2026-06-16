@@ -8,7 +8,7 @@ Usage:
         ...
 
 Phase 2.3 activity/audit handlers are in app/platform/handlers/activity.py.
-Phase 2.4 notification handlers will be added there too.
+Phase 2.4 notification handlers are in app/platform/handlers/notifications.py.
 """
 import logging
 from collections.abc import Awaitable, Callable

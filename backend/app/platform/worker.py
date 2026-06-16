@@ -18,7 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.postgres import SessionLocal
 from app.models.outbox import OutboxEvent
 from app.platform.handlers import dispatch
+from app.platform.jobs.email import send_daily_digest, send_notification_email
 import app.platform.handlers.activity  # noqa: F401  — registers all handlers
+import app.platform.handlers.notifications  # noqa: F401  — registers notification handlers
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +73,10 @@ async def on_shutdown(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions: list = []
+    functions = [send_notification_email, send_daily_digest]
     cron_jobs = [
         cron(poll_outbox, second={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+        cron(send_daily_digest, hour=9, minute=0),
     ]
     on_startup = on_startup
     on_shutdown = on_shutdown
