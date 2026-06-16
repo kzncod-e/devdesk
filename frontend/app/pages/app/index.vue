@@ -84,6 +84,12 @@ function closeForm() {
   editing.value = null
 }
 
+// Open the create modal when ⌘K requested a new project (from any page).
+const { intent: quickCreateIntent, consume: consumeQuickCreate } = useQuickCreate()
+watch(quickCreateIntent, () => {
+  if (consumeQuickCreate('project')) openCreate()
+}, { immediate: true })
+
 const saveProject = useMutation({
   mutationFn: async (data: { name: string; description: string; color: string; image?: File | null }) => {
     const { image, ...fields } = data

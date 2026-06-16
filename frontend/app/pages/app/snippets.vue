@@ -57,6 +57,12 @@ function closeForm() {
   editing.value = null;
 }
 
+// Open the create modal when ⌘K requested a new snippet (from any page).
+const { intent: quickCreateIntent, consume: consumeQuickCreate } = useQuickCreate();
+watch(quickCreateIntent, () => {
+  if (consumeQuickCreate("snippet")) openCreate();
+}, { immediate: true });
+
 const saveSnippet = useMutation({
   mutationFn: (data: Record<string, unknown>) =>
     editing.value

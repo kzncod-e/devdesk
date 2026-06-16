@@ -51,6 +51,12 @@ function closeForm() {
   editing.value = null
 }
 
+// Open the create modal when ⌘K requested a new bookmark (from any page).
+const { intent: quickCreateIntent, consume: consumeQuickCreate } = useQuickCreate()
+watch(quickCreateIntent, () => {
+  if (consumeQuickCreate('bookmark')) openCreate()
+}, { immediate: true })
+
 const saveBookmark = useMutation({
   mutationFn: (data: Record<string, unknown>) =>
     editing.value

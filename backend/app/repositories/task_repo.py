@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.task import Task
 from app.models.user import User
-from app.repositories.project_repo import fts_clause
+from app.platform.search import rank, vector_match
 
 
 class TaskRepository:
@@ -50,7 +50,9 @@ class TaskRepository:
         stmt = (
             select(Task)
             .where(Task.workspace_id == workspace_id,
-                   fts_clause(self.session, Task.title, Task.description, q=q))
+                   vector_match(self.session, "search_vector",
+                                Task.title, Task.description, q=q))
+            .order_by(rank(self.session, "search_vector", q=q).desc(), Task.id.desc())
             .limit(limit)
         )
         res = await self.session.execute(stmt)

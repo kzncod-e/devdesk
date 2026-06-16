@@ -54,5 +54,41 @@ async def test_search_limit_and_validation(client):
 
 
 @pytest.mark.asyncio
+async def test_search_types_filter_scopes_groups(client):
+    headers = await register_and_login(client)
+    await seed(client, headers)
+
+    # only projects + tasks requested → snippets/bookmarks come back empty
+    r = await client.get("/api/v1/search?q=nginx&types=projects,tasks", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["projects"]) == 1
+    assert len(body["tasks"]) == 1
+    assert body["snippets"] == []
+    assert body["bookmarks"] == []
+
+    # snippets-only scope (drives the `/s` palette prefix)
+    r = await client.get("/api/v1/search?q=nginx&types=snippets", headers=headers)
+    body = r.json()
+    assert len(body["snippets"]) == 1
+    assert body["projects"] == [] and body["tasks"] == [] and body["bookmarks"] == []
+
+    # unknown type names are ignored, not errors
+    r = await client.get("/api/v1/search?q=nginx&types=bogus", headers=headers)
+    assert r.status_code == 200
+    assert all(group == [] for group in r.json().values())
+
+
+@pytest.mark.asyncio
+async def test_search_matches_partial_word(client):
+    headers = await register_and_login(client)
+    await seed(client, headers)
+    # "ngin" should match "Nginx infra" (prefix on PG, substring on the SQLite tier)
+    r = await client.get("/api/v1/search?q=ngin", headers=headers)
+    assert r.status_code == 200
+    assert len(r.json()["projects"]) == 1
+
+
+@pytest.mark.asyncio
 async def test_search_requires_auth(client):
     assert (await client.get("/api/v1/search?q=x")).status_code in (401, 403)

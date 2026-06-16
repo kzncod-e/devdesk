@@ -20,8 +20,8 @@
 | Projects / tasks / snippets / bookmarks scoped to workspace | ✅ shipped |
 | Snippets & bookmarks still in MongoDB | ⚠️ pending consolidation (Phase 2) |
 | Migrations via inline `ALTER TABLE` (no Alembic) | ⚠️ pending (Phase 2) |
-| Activity feed, audit log, notifications | ❌ not started (Phase 2) |
-| Global search (Postgres FTS) + ⌘K actions | ❌ partial (per-store search exists) |
+| Activity feed, audit log, notifications | ✅ shipped (2.3, 2.4) |
+| Global search (Postgres FTS) + ⌘K actions | ✅ shipped (2.5) |
 | Templates, collections | ❌ not started (Phase 2) |
 | Comments / @mentions, task side-panel, workflows | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
@@ -131,16 +131,22 @@ event backbone** — so build those first.
 - **API:** `GET /notifications?cursor=`, `POST /notifications/read`, unread count.
 - **UI:** wire the existing bell icon to a real unread badge + dropdown panel.
 
-### 2.5 Global search + ⌘K actions  ·  **M**
+### 2.5 Global search + ⌘K actions  ·  **M**  ·  ✅ shipped
 - **Why:** the most-used surface in Linear/Raycast; defines "fast tool".
-- **DB:** generated `tsvector` columns + GIN indexes on projects/tasks/snippets/
-  bookmarks/templates; `pg_trgm` GIN for fuzzy.
-- **Backend:** `platform/search` query builder; ranked `UNION ALL` across entities,
-  all filtered by `workspace_id`; recent searches in Redis per user.
-- **API:** `GET /search?q=&types=&tags=` returns grouped results (shape already exists).
-- **UI:** upgrade the command palette from search-only to **actionable** (create
-  task, change status, switch workspace, invite, toggle theme); `/p /s /b` scoping;
-  recents on empty query.
+- **DB:** ✅ generated `tsvector` columns + GIN indexes on projects/tasks
+  (migration `f3a4b5c6d7e8`). Snippets/bookmarks keep their MongoDB text indexes.
+- **Backend:** ✅ `app/platform/search.py` query builder — index-backed match +
+  `ts_rank` ordering, all `workspace_id`-scoped, with prefix matching (`term:*`)
+  so partial words match mid-type; ILIKE fallback on the SQLite test tier.
+- **API:** ✅ `GET /search?q=&types=&limit=` returns grouped results; `types`
+  (comma-sep subset) drives palette scoping.
+- **UI:** ✅ command palette is now **actionable** (new project/snippet/bookmark
+  via a cross-page `useQuickCreate` intent, switch workspace, invite, toggle
+  theme, settings, log out); `/p /t /s /b` scoping; recents on empty query
+  (localStorage).
+- **Deferred:** `pg_trgm` fuzzy/typo-tolerance (prefix matching covers the common
+  case); per-user recents in Redis (localStorage chosen — per-device, no
+  round-trip); `tags=` filter; templates not yet indexed (ship in 2.6).
 
 ### 2.6 Templates + public gallery  ·  **M**
 - **Why:** time-to-value; a public gallery is a growth/SEO channel (GitHub-template style).

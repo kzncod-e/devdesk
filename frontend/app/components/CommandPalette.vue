@@ -15,11 +15,16 @@ interface Item {
   label: string
   hint?: string
   icon: string
+  keywords?: string
   action: () => void
 }
 
-const { api } = useAuth()
+const { api, logout } = useAuth()
 const { open, hide } = useCommandPalette()
+const { mode, toggle: toggleTheme } = useTheme()
+const { workspaces, workspaceId, setCurrent } = useWorkspace()
+const { request: requestCreate } = useQuickCreate()
+const { recents, pushRecent } = useSearchRecents()
 
 const query = ref('')
 const results = ref<SearchOut | null>(null)
@@ -28,81 +33,118 @@ const activeIndex = ref(0)
 const input = ref<HTMLInputElement | null>(null)
 let debounce: ReturnType<typeof setTimeout> | null = null
 
-const navItems: Item[] = [
-  { key: 'nav-projects', label: 'Go to Projects', icon: 'folder', action: () => go('/app') },
-  { key: 'nav-snippets', label: 'Go to Snippets', icon: 'code', action: () => go('/app/snippets') },
-  { key: 'nav-bookmarks', label: 'Go to Bookmarks', icon: 'bookmark', action: () => go('/app/bookmarks') },
-]
+// ── Scope prefixes: "/p foo" searches only projects, etc. ──────────────────────
+const SCOPES: Record<string, keyof SearchOut> = {
+  p: 'projects',
+  t: 'tasks',
+  s: 'snippets',
+  b: 'bookmarks',
+}
+const scopeMatch = computed(() => query.value.match(/^\/([ptsb])\s+(.*)$/i))
+const scope = computed<keyof SearchOut | null>(() =>
+  scopeMatch.value ? SCOPES[scopeMatch.value[1]!.toLowerCase()]! : null,
+)
+const searchTerm = computed(() =>
+  (scopeMatch.value ? scopeMatch.value[2]! : query.value).trim(),
+)
 
 function go(path: string) {
   hide()
   navigateTo(path)
 }
 
-const groups = computed<{ label: string; items: Item[] }[]>(() => {
-  if (!query.value.trim()) {
-    return [{ label: 'Navigate', items: navItems }]
-  }
-  if (!results.value) return []
-  const out: { label: string; items: Item[] }[] = []
-  const r = results.value
-  if (r.projects.length) {
-    out.push({
-      label: 'Projects',
-      items: r.projects.map(p => ({
-        key: `p-${p.id}`,
-        label: p.name,
-        hint: p.description,
-        icon: 'folder',
-        action: () => go(`/app/projects/${p.id}`),
-      })),
+function openResult(path: string) {
+  if (searchTerm.value) pushRecent(searchTerm.value)
+  go(path)
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────────
+const navItems: Item[] = [
+  { key: 'nav-projects', label: 'Go to Projects', icon: 'folder', action: () => go('/app') },
+  { key: 'nav-snippets', label: 'Go to Snippets', icon: 'code', action: () => go('/app/snippets') },
+  { key: 'nav-bookmarks', label: 'Go to Bookmarks', icon: 'bookmark', action: () => go('/app/bookmarks') },
+]
+
+const actions = computed<Item[]>(() => {
+  const list: Item[] = [
+    { key: 'a-new-project', label: 'New project', icon: 'plus', keywords: 'create add board', action: () => { hide(); requestCreate('project') } },
+    { key: 'a-new-snippet', label: 'New snippet', icon: 'code', keywords: 'create add code', action: () => { hide(); requestCreate('snippet') } },
+    { key: 'a-new-bookmark', label: 'New bookmark', icon: 'bookmark', keywords: 'create add link url', action: () => { hide(); requestCreate('bookmark') } },
+    { key: 'a-invite', label: 'Invite member', icon: 'user-plus', keywords: 'team people add invite', action: () => go('/app/settings') },
+    { key: 'a-theme', label: mode.value === 'dark' ? 'Switch to light theme' : 'Switch to dark theme', icon: mode.value === 'dark' ? 'sun' : 'moon', keywords: 'theme dark light mode appearance', action: () => toggleTheme() },
+    { key: 'a-settings', label: 'Open settings', icon: 'settings', keywords: 'profile account preferences', action: () => go('/app/settings') },
+    { key: 'a-logout', label: 'Log out', icon: 'logout', keywords: 'signout sign out exit', action: () => { hide(); logout() } },
+  ]
+  for (const w of workspaces.value) {
+    if (w.id === workspaceId.value) continue
+    list.push({
+      key: `ws-${w.id}`,
+      label: `Switch to ${w.name}`,
+      hint: 'Workspace',
+      icon: 'layers',
+      keywords: `workspace switch ${w.name}`,
+      action: () => { hide(); setCurrent(w.id) },
     })
+  }
+  return list
+})
+
+function matchesAction(a: Item, term: string): boolean {
+  const hay = `${a.label} ${a.keywords ?? ''}`.toLowerCase()
+  return term.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t))
+}
+
+// ── Result groups ───────────────────────────────────────────────────────────────
+function resultGroups(r: SearchOut): { label: string; items: Item[] }[] {
+  const out: { label: string; items: Item[] }[] = []
+  if (r.projects.length) {
+    out.push({ label: 'Projects', items: r.projects.map((p) => ({ key: `p-${p.id}`, label: p.name, hint: p.description, icon: 'folder', action: () => openResult(`/app/projects/${p.id}`) })) })
   }
   if (r.tasks.length) {
-    out.push({
-      label: 'Tasks',
-      items: r.tasks.map(t => ({
-        key: `t-${t.id}`,
-        label: t.title,
-        hint: t.description,
-        icon: 'check',
-        action: () => go(`/app/projects/${t.project_id}`),
-      })),
-    })
+    out.push({ label: 'Tasks', items: r.tasks.map((t) => ({ key: `t-${t.id}`, label: t.title, hint: t.description, icon: 'check', action: () => openResult(`/app/projects/${t.project_id}`) })) })
   }
   if (r.snippets.length) {
-    out.push({
-      label: 'Snippets',
-      items: r.snippets.map(s => ({
-        key: `s-${s.id}`,
-        label: s.title,
-        hint: s.language,
-        icon: 'code',
-        action: () => go('/app/snippets'),
-      })),
-    })
+    out.push({ label: 'Snippets', items: r.snippets.map((s) => ({ key: `s-${s.id}`, label: s.title, hint: s.language, icon: 'code', action: () => openResult('/app/snippets') })) })
   }
   if (r.bookmarks.length) {
-    out.push({
-      label: 'Bookmarks',
-      items: r.bookmarks.map(b => ({
-        key: `b-${b.id}`,
-        label: b.title || b.url,
-        hint: b.url,
-        icon: 'bookmark',
-        action: () => go('/app/bookmarks'),
-      })),
-    })
+    out.push({ label: 'Bookmarks', items: r.bookmarks.map((b) => ({ key: `b-${b.id}`, label: b.title || b.url, hint: b.url, icon: 'bookmark', action: () => openResult('/app/bookmarks') })) })
   }
+  return out
+}
+
+const groups = computed<{ label: string; items: Item[] }[]>(() => {
+  // Empty query → recents, actions, navigation.
+  if (!query.value.trim()) {
+    const out: { label: string; items: Item[] }[] = []
+    if (recents.value.length) {
+      out.push({
+        label: 'Recent',
+        items: recents.value.map((r, i) => ({ key: `r-${i}`, label: r, icon: 'search', action: () => { query.value = r } })),
+      })
+    }
+    out.push({ label: 'Actions', items: actions.value })
+    out.push({ label: 'Navigate', items: navItems })
+    return out
+  }
+
+  const out: { label: string; items: Item[] }[] = []
+  // Unscoped queries also surface matching actions ("new" → New project).
+  if (!scope.value) {
+    const acts = actions.value.filter((a) => matchesAction(a, searchTerm.value))
+    if (acts.length) out.push({ label: 'Actions', items: acts })
+  }
+  if (results.value) out.push(...resultGroups(results.value))
   return out
 })
 
-const flat = computed(() => groups.value.flatMap(g => g.items))
+const flat = computed(() => groups.value.flatMap((g) => g.items))
+const showNoResults = computed(() => searchTerm.value !== '' && !loading.value && !flat.value.length)
+const showScopeHint = computed(() => scope.value !== null && searchTerm.value === '')
 
-watch(query, (q) => {
+watch([searchTerm, scope], ([term]) => {
   activeIndex.value = 0
   if (debounce) clearTimeout(debounce)
-  if (!q.trim()) {
+  if (!term) {
     results.value = null
     loading.value = false
     return
@@ -110,7 +152,9 @@ watch(query, (q) => {
   loading.value = true
   debounce = setTimeout(async () => {
     try {
-      results.value = await api<SearchOut>(`/api/v1/search?q=${encodeURIComponent(q)}&limit=6`)
+      const params = new URLSearchParams({ q: term, limit: '6' })
+      if (scope.value) params.set('types', scope.value)
+      results.value = await api<SearchOut>(`/api/v1/search?${params.toString()}`)
     } catch {
       results.value = { projects: [], tasks: [], snippets: [], bookmarks: [] }
     } finally {
@@ -181,8 +225,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
                 ref="input"
                 v-model="query"
                 type="search"
-                aria-label="Search projects, tasks, snippets and bookmarks"
-                placeholder="Search projects, tasks, snippets, bookmarks…"
+                aria-label="Search or run a command"
+                placeholder="Search or run a command…  (try /p /t /s /b)"
                 class="h-14 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-subtle"
               >
               <kbd class="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-subtle">ESC</kbd>
@@ -194,10 +238,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
               </div>
 
               <p
-                v-else-if="query.trim() && !flat.length"
+                v-else-if="showScopeHint"
                 class="px-3 py-10 text-center text-sm text-ink-muted"
               >
-                No results for “{{ query }}”.
+                Type to search {{ scope }}…
+              </p>
+
+              <p
+                v-else-if="showNoResults"
+                class="px-3 py-10 text-center text-sm text-ink-muted"
+              >
+                No results for “{{ searchTerm }}”.
               </p>
 
               <div v-for="group in groups" v-else :key="group.label" class="mb-1.5">
@@ -237,7 +288,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
             <div class="flex items-center gap-4 border-t border-line px-4 py-2.5 text-[11px] text-ink-subtle">
               <span class="flex items-center gap-1"><kbd class="rounded border border-line px-1">↑</kbd><kbd class="rounded border border-line px-1">↓</kbd> navigate</span>
-              <span class="flex items-center gap-1"><kbd class="rounded border border-line px-1">↵</kbd> open</span>
+              <span class="flex items-center gap-1"><kbd class="rounded border border-line px-1">↵</kbd> select</span>
+              <span class="ml-auto hidden sm:flex items-center gap-1"><kbd class="rounded border border-line px-1">/p</kbd><kbd class="rounded border border-line px-1">/t</kbd><kbd class="rounded border border-line px-1">/s</kbd><kbd class="rounded border border-line px-1">/b</kbd> scope</span>
             </div>
           </div>
         </Transition>

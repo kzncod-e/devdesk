@@ -1,16 +1,8 @@
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
-
-
-def fts_clause(session: AsyncSession, *columns, q: str):
-    """websearch FTS on PostgreSQL; portable ILIKE fallback for the SQLite
-    API-test tier (production always runs the FTS path)."""
-    if session.bind.dialect.name == "postgresql":
-        document = func.to_tsvector("english", func.concat_ws(" ", *columns))
-        return document.op("@@")(func.websearch_to_tsquery("english", q))
-    return or_(*(col.ilike(f"%{q}%") for col in columns))
+from app.platform.search import rank, vector_match
 
 
 class ProjectRepository:
@@ -48,7 +40,9 @@ class ProjectRepository:
         stmt = (
             select(Project)
             .where(Project.workspace_id == workspace_id,
-                   fts_clause(self.session, Project.name, Project.description, q=q))
+                   vector_match(self.session, "search_vector",
+                                Project.name, Project.description, q=q))
+            .order_by(rank(self.session, "search_vector", q=q).desc(), Project.id.desc())
             .limit(limit)
         )
         res = await self.session.execute(stmt)
