@@ -1,4 +1,6 @@
 """Outbox handlers that fan out domain events into per-user notifications."""
+from datetime import timedelta
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +38,12 @@ async def _notify(
         payload=payload,
     )
     if email:
-        await enqueue_job("send_notification_email", row.id)
+        # The notification row is only flushed here — the outbox batch commits
+        # later in poll_outbox. Defer the email so it can't run (on its own DB
+        # connection) before that commit lands and find no row.
+        await enqueue_job(
+            "send_notification_email", row.id, _defer_by=timedelta(seconds=10)
+        )
 
 
 @register("task.created")

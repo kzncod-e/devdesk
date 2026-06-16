@@ -82,10 +82,12 @@ class WorkspaceService:
         # Don't strip the last owner of ownership.
         if target.role == Role.OWNER and new_role != Role.OWNER:
             await self._guard_not_last_owner(workspace_id)
+        # Capture before update() — it mutates target.role in place.
+        old_role = target.role
         updated = await self.memberships.update(target, role=new_role)
         await emit(self.session, "member.role_changed",
                    {"workspace_id": workspace_id, "user_id": target_user_id,
-                    "old_role": target.role, "new_role": new_role},
+                    "old_role": old_role, "new_role": new_role},
                    workspace_id=workspace_id)
         await self.session.commit()
         return updated
