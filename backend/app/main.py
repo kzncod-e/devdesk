@@ -8,8 +8,8 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.routers import (
-    admin, auth, bookmarks, notifications, projects, search, snippets, tasks, users,
-    workspaces,
+    admin, auth, bookmarks, notifications, projects, search, snippets, tasks,
+    templates, users, workspaces,
 )
 import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
@@ -21,6 +21,7 @@ import app.models.outbox  # noqa: F401
 import app.models.activity  # noqa: F401
 import app.models.audit_log  # noqa: F401
 import app.models.notification  # noqa: F401
+import app.models.template  # noqa: F401
 import app.platform.handlers.activity  # noqa: F401  — registers all outbox handlers
 import app.platform.handlers.notifications  # noqa: F401
 
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router)
     app.include_router(workspaces.router)
     app.include_router(notifications.router)
+    app.include_router(templates.router)
 
     return app
 

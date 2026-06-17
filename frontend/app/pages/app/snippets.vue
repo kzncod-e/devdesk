@@ -11,6 +11,7 @@ const { api } = useAuth();
 const queryClient = useQueryClient();
 const { confirm } = useConfirm();
 const { success, error } = useToast();
+const saveTemplate = useSaveTemplate();
 
 const languageFilter = ref("");
 const tagFilter = ref("");
@@ -191,6 +192,7 @@ async function confirmDelete(s: Snippet) {
         :style="{ '--i': i }"
         @edit="startEdit(s)"
         @delete="confirmDelete(s)"
+        @template="saveTemplate.save({ kind: 'snippet', sourceId: s.id, sourceName: s.title })"
       />
     </TransitionGroup>
 

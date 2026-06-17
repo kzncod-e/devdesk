@@ -10,6 +10,7 @@ defineEmits<{
   edit: []
   archive: []
   delete: []
+  template: []
 }>()
 
 const isActive = computed(() => props.project.status === 'active')
@@ -67,6 +68,9 @@ function cldOptimize(url: string) {
           class="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100"
           @click.stop
         >
+          <button type="button" class="icon-btn" aria-label="Save project as template" @click="$emit('template')">
+            <UiIcon name="layers" :size="15" />
+          </button>
           <button type="button" class="icon-btn" aria-label="Edit project" @click="$emit('edit')">
             <UiIcon name="edit" :size="15" />
           </button>

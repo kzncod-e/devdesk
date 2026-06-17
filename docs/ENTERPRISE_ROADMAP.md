@@ -22,7 +22,8 @@
 | Migrations via inline `ALTER TABLE` (no Alembic) | ⚠️ pending (Phase 2) |
 | Activity feed, audit log, notifications | ✅ shipped (2.3, 2.4) |
 | Global search (Postgres FTS) + ⌘K actions | ✅ shipped (2.5) |
-| Templates, collections | ❌ not started (Phase 2) |
+| Templates + public gallery | ✅ shipped (2.6) |
+| Collections, normalized tags, saved filters | ❌ not started (2.7) |
 | Comments / @mentions, task side-panel, workflows | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
 
@@ -148,17 +149,27 @@ event backbone** — so build those first.
   case); per-user recents in Redis (localStorage chosen — per-device, no
   round-trip); `tags=` filter; templates not yet indexed (ship in 2.6).
 
-### 2.6 Templates + public gallery  ·  **M**
+### 2.6 Templates + public gallery  ·  **M**  ·  ✅ shipped
 - **Why:** time-to-value; a public gallery is a growth/SEO channel (GitHub-template style).
-- **DB:** `templates(workspace_id NULL=global, kind, name, description, payload jsonb,
-  visibility, created_by, use_count)`.
-- **Backend:** "capture" serializes an existing project/snippet → `payload`;
-  "use" instantiates into the current workspace in one transaction (now possible
-  post-consolidation), increments `use_count`, emits `template.used`.
-- **API:** `POST /templates`, `GET /templates?kind=&visibility=`,
-  `POST /templates/{id}/use`, `GET /templates/gallery`.
-- **UI:** "Save as template" on projects/snippets; "New from template"; public gallery.
-- **Permissions:** create = `CONTENT_WRITE`; publish public = `WORKSPACE_MANAGE`.
+- **DB:** ✅ `templates(workspace_id NULL=global, kind, name, description, payload
+  jsonb, visibility, created_by, use_count)` (migration `a4b5c6d7e8f9`).
+- **Backend:** ✅ `app/services/template_service.py` — "capture" serializes a
+  project (+ its tasks & snippets) or a snippet → `payload`; "use" instantiates
+  into the current workspace in a single transaction, increments `use_count`,
+  emits `template.created` / `template.used` (wired into the activity feed).
+- **API:** ✅ `POST /templates/capture`, `POST /templates` (from payload),
+  `GET /templates?kind=&visibility=`, `GET /templates/{id}`,
+  `POST /templates/{id}/use`, `DELETE /templates/{id}`, and the unauthenticated
+  `GET /templates/gallery`.
+- **UI:** ✅ "Save as template" on project/snippet cards (global `SaveTemplateModal`
+  via a `useSaveTemplate` singleton); `/app/templates` browse-and-use page; ⌘K
+  "Browse templates"; SSR public `/gallery`.
+- **Permissions:** ✅ create = `CONTENT_WRITE`; delete = `CONTENT_DELETE`;
+  publish public = `WORKSPACE_MANAGE`. Usable templates = own workspace ∪ global
+  (NULL) ∪ any public.
+- **Deferred:** templates aren't FTS-indexed yet (2.5 follow-up); gallery "Use"
+  links into the app rather than instantiating anonymously; capture is bounded to
+  200 tasks/snippets.
 
 ### 2.7 Collections, normalized tags, saved filters  ·  **S–M**
 - **DB:** `collections(workspace_id, name, kind, parent_id)`; `tags(workspace_id,

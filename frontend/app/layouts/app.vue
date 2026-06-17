@@ -88,6 +88,7 @@ onMounted(() => {
 const nav = [
   { to: "/app/snippets", label: "Snippets", icon: "code" },
   { to: "/app/bookmarks", label: "Bookmarks", icon: "bookmark" },
+  { to: "/app/templates", label: "Templates", icon: "layers" },
   { to: "/app/settings", label: "Settings", icon: "settings" },
 ];
 
@@ -445,6 +446,7 @@ const initials = computed(() =>
     </UiModal>
 
     <CommandPalette />
+    <SaveTemplateModal />
     <UiToaster />
     <UiConfirm />
     <AppSplash :show="showSplash" />

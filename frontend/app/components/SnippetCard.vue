@@ -5,7 +5,7 @@ import CodeBlock from '~/components/CodeBlock.vue'
 import type { Snippet } from '~/types/api'
 
 defineProps<{ snippet: Snippet }>()
-defineEmits<{ edit: []; delete: [] }>()
+defineEmits<{ edit: []; delete: []; template: [] }>()
 
 const expanded = ref(false)
 </script>
@@ -22,6 +22,9 @@ const expanded = ref(false)
       <div
         class="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100"
       >
+        <button type="button" class="icon-btn" aria-label="Save snippet as template" @click="$emit('template')">
+          <UiIcon name="layers" :size="15" />
+        </button>
         <button type="button" class="icon-btn" aria-label="Edit snippet" @click="$emit('edit')">
           <UiIcon name="edit" :size="15" />
         </button>

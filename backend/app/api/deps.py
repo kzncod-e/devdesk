@@ -12,6 +12,7 @@ from app.repositories.bookmark_repo import BookmarkRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.snippet_repo import SnippetRepository
 from app.repositories.task_repo import TaskRepository
+from app.repositories.template_repo import TemplateRepository
 from app.repositories.user_repo import UserRepository
 from app.repositories.workspace_repo import (
     InviteRepository,
@@ -24,6 +25,7 @@ from app.services.project_service import ProjectService
 from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
 from app.services.task_service import TaskService
+from app.services.template_service import TemplateService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
@@ -95,6 +97,16 @@ def get_search_service(session: Session) -> SearchService:
         TaskRepository(session),
         SnippetRepository(session),
         BookmarkRepository(session),
+    )
+
+
+def get_template_service(session: Session) -> TemplateService:
+    return TemplateService(
+        session,
+        TemplateRepository(session),
+        ProjectRepository(session),
+        TaskRepository(session),
+        SnippetRepository(session),
     )
 
 

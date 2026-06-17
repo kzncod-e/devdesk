@@ -151,3 +151,28 @@ export interface NotificationPage {
   items: Notification[]
   next_cursor: number | null
 }
+
+export type TemplateKind = 'project' | 'snippet'
+export type TemplateVisibility = 'workspace' | 'public'
+
+export interface Template {
+  id: number
+  workspace_id: number | null
+  kind: TemplateKind
+  name: string
+  description: string
+  visibility: TemplateVisibility
+  created_by: number | null
+  use_count: number
+  created_at: string
+}
+
+export interface TemplateDetail extends Template {
+  payload: Record<string, unknown>
+}
+
+export interface UseTemplateResult {
+  kind: TemplateKind
+  project_id?: number | null
+  snippet_id?: number | null
+}

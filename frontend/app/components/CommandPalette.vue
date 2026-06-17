@@ -70,6 +70,7 @@ const actions = computed<Item[]>(() => {
     { key: 'a-new-project', label: 'New project', icon: 'plus', keywords: 'create add board', action: () => { hide(); requestCreate('project') } },
     { key: 'a-new-snippet', label: 'New snippet', icon: 'code', keywords: 'create add code', action: () => { hide(); requestCreate('snippet') } },
     { key: 'a-new-bookmark', label: 'New bookmark', icon: 'bookmark', keywords: 'create add link url', action: () => { hide(); requestCreate('bookmark') } },
+    { key: 'a-templates', label: 'Browse templates', icon: 'layers', keywords: 'template scaffold reuse gallery', action: () => go('/app/templates') },
     { key: 'a-invite', label: 'Invite member', icon: 'user-plus', keywords: 'team people add invite', action: () => go('/app/settings') },
     { key: 'a-theme', label: mode.value === 'dark' ? 'Switch to light theme' : 'Switch to dark theme', icon: mode.value === 'dark' ? 'sun' : 'moon', keywords: 'theme dark light mode appearance', action: () => toggleTheme() },
     { key: 'a-settings', label: 'Open settings', icon: 'settings', keywords: 'profile account preferences', action: () => go('/app/settings') },

@@ -9,6 +9,7 @@ const { api } = useAuth()
 const { uploadProjectImage } = useCloudinaryUpload()
 const queryClient = useQueryClient()
 const { workspaceId } = useWorkspace()
+const saveTemplate = useSaveTemplate()
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
 const { data: activityPage } = useQuery({
@@ -232,6 +233,7 @@ async function confirmDelete(p: Project) {
             @edit="startEdit(p)"
             @archive="toggleArchive.mutate(p)"
             @delete="confirmDelete(p)"
+            @template="saveTemplate.save({ kind: 'project', sourceId: p.id, sourceName: p.name })"
           />
         </TransitionGroup>
       </div>

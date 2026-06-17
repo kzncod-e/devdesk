@@ -28,6 +28,8 @@ _TOPIC_MAP: dict[str, tuple[str, str, str | None]] = {
     "member.role_changed":      ("role_changed",      "member",    None),
     "member.removed":           ("removed",           "member",    None),
     "workspace.created":        ("created",           "workspace", "name"),
+    "template.created":         ("created",           "template",  "name"),
+    "template.used":            ("used",              "template",  "name"),
 }
 
 # For member events, entity_id lives under a different key.
