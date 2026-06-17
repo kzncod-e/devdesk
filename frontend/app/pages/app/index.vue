@@ -288,8 +288,8 @@ async function confirmDelete(p: Project) {
 
     <UiModal
       :open="showForm"
-      :title="editing ? 'Edit project' : 'New project'"
-      :subtitle="editing ? 'Update the project details.' : 'Spin up a new board.'"
+      no-header
+      width="max-w-2xl"
       @close="closeForm"
     >
       <ProjectForm

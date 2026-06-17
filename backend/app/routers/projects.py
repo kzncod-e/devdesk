@@ -5,7 +5,7 @@ import cloudinary
 import cloudinary.utils
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import get_project_service
+from app.api.deps import get_project_service, get_current_user
 from app.api.tenancy import WorkspaceContext, require
 from app.core.config import get_settings
 from app.core.errors import AppError
@@ -36,13 +36,13 @@ async def list_projects(ctx: Reader, svc: Service,
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-async def get_project(project_id: int, ctx: Reader, svc: Service):
-    return await svc.get(project_id, ctx.workspace_id)
+async def get_project(project_id: int, svc: Service, user=Depends(get_current_user)):
+    return await svc.get_project_for_user(project_id, user.id)
 
 
 @router.get("/{project_id}/summary", response_model=ProjectSummaryOut)
-async def project_summary(project_id: int, ctx: Reader, svc: Service):
-    return await svc.summary(project_id, ctx.workspace_id)
+async def project_summary(project_id: int, svc: Service, user=Depends(get_current_user)):
+    return await svc.get_project_summary_for_user(project_id, user.id)
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)

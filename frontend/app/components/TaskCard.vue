@@ -10,6 +10,14 @@ import type { Task, TaskPriority } from '~/types/api'
 const props = defineProps<{ task: Task }>()
 defineEmits<{ edit: []; delete: [] }>()
 
+function navigateToTask(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (target.closest('button') || target.closest('a')) {
+    return
+  }
+  navigateTo(`/app/tasks/${props.task.id}`)
+}
+
 const priorityTone: Record<TaskPriority, 'gray' | 'amber' | 'red'> = {
   low: 'gray',
   medium: 'amber',
@@ -42,7 +50,8 @@ const hasFooter = computed(
 
 <template>
   <article
-    class="group relative flex cursor-grab flex-col gap-2.5 rounded-xl border border-line bg-surface p-3 shadow-card transition-all duration-150 hover:border-line-strong hover:shadow-card-hover active:cursor-grabbing"
+    class="group relative flex cursor-pointer cursor-grab flex-col gap-2.5 rounded-xl border border-line bg-surface p-3 shadow-card transition-all duration-150 hover:border-line-strong hover:shadow-card-hover active:cursor-grabbing"
+    @click="navigateToTask"
   >
     <header class="flex items-center gap-2">
       <UiBadge :tone="priorityTone[task.priority]" class="capitalize">

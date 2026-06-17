@@ -1,9 +1,12 @@
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NotFoundError
 from app.core.events import emit
+from app.models.task import Task
+from app.models.workspace import Membership
 
 POSITION_STEP = 1024.0
 
@@ -83,6 +86,28 @@ class TaskService:
         await emit(self.session, "task.deleted",
                    {"id": task_id}, workspace_id=workspace_id)
         await self.session.commit()
+
+    async def get(self, task_id: int, workspace_id: int):
+        return await self._require_task(task_id, workspace_id)
+
+    async def get_task_for_user(self, task_id: int, user_id: int):
+        stmt = select(Task).where(Task.id == task_id)
+        res = await self.session.execute(stmt)
+        task = res.scalar_one_or_none()
+        if task is None:
+            raise NotFoundError("Task not found")
+
+        # Verify the user has active membership in this task's workspace
+        member_stmt = select(Membership).where(
+            Membership.workspace_id == task.workspace_id,
+            Membership.user_id == user_id,
+            Membership.status == "active"
+        )
+        member_res = await self.session.execute(member_stmt)
+        if member_res.scalar_one_or_none() is None:
+            raise NotFoundError("Task not found")
+
+        return task
 
     async def _require_project(self, project_id: int, workspace_id: int):
         project = await self.project_repo.get_for_workspace(project_id, workspace_id)

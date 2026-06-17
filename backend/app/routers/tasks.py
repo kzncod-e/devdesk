@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import get_task_service
+from app.api.deps import get_task_service, get_current_user
 from app.api.tenancy import WorkspaceContext, require
 from app.core.policy import Perm
 from app.schemas.task import AssigneesIn, TaskIn, TaskOut, TaskPatch
@@ -41,6 +41,11 @@ async def list_tasks(project_id: int, ctx: Reader, svc: Service,
 @router.patch("/tasks/{task_id}", response_model=TaskOut)
 async def patch_task(task_id: int, body: TaskPatch, ctx: Writer, svc: Service):
     return await svc.update(task_id, ctx.workspace_id, **body.model_dump(exclude_unset=True))
+
+
+@router.get("/tasks/{task_id}", response_model=TaskOut)
+async def get_task(task_id: int, svc: Service, user=Depends(get_current_user)):
+    return await svc.get_task_for_user(task_id, user.id)
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

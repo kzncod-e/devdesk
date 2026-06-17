@@ -17,13 +17,21 @@ const { success, error } = useToast()
 const { data: task, isPending: isTaskPending } = useQuery({
   queryKey: computed(() => ['task', taskId.value]),
   queryFn: () => api<Task>(`/api/v1/tasks/${taskId.value}`),
+  enabled: computed(() => route.path.startsWith('/app/tasks/') && !isNaN(taskId.value)),
+})
+
+const { workspaceId, setCurrent: setWorkspace } = useWorkspace()
+watch(task, (t) => {
+  if (t && t.workspace_id && t.workspace_id !== workspaceId.value) {
+    setWorkspace(t.workspace_id)
+  }
 })
 
 // ── Fetch Project (using task's project_id) ──────────────────────────────────
 const { data: project } = useQuery({
   queryKey: computed(() => ['project', task.value?.project_id]),
   queryFn: () => api<Project>(`/api/v1/projects/${task.value!.project_id}`),
-  enabled: computed(() => task.value != null),
+  enabled: computed(() => route.path.startsWith('/app/tasks/') && task.value != null && task.value.id === taskId.value),
 })
 
 // ── Fetch Users (for assignee selector) ─────────────────────────────────────
@@ -155,8 +163,8 @@ const priorityTone: Record<TaskPriority, 'gray' | 'amber' | 'red'> = {
 }
 
 const statusOptions: { key: TaskStatus; label: string; dot: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-slate-400' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500' },
+  { key: 'todo', label: 'To do', dot: 'bg-blue-500' },
+  { key: 'in_progress', label: 'In progress', dot: 'bg-indigo-500' },
   { key: 'done', label: 'Done', dot: 'bg-emerald-500' },
 ]
 

@@ -1,0 +1,9 @@
+# Antigravity & AI Coding Assistant Rules
+
+Always refer to the project's [CLAUDE.md](file:///Users/macbook/Documents/files/devdesk/CLAUDE.md) file at the root of the repository. It contains the primary source of truth for:
+1. **Stack & Conventions**: Nuxt 4, Vue 3, Tailwind v4, TanStack Query, FastAPI, SQLAlchemy, Postgres, and MongoDB configurations.
+2. **Visual Direction**: Dark-first, neutral-gray Linear-style design system alignment, components styling, and spacing rules.
+3. **Status Colors**: Custom mapped blue/indigo/green status colors for the board and task details.
+4. **Tenancy Scoping**: Dynamic tenant validation without header-locking for task and project details lookups.
+5. **Nuxt Parameter Reactivity**: Wrapping route parameters in computed properties and utilizing `route.path` path checks for transition safety.
+6. **Common Gotchas**: E.g. Vitest imports, SQLAlchemy SQL default literals, sync Cloudinary uploads, and `FormData` headers.

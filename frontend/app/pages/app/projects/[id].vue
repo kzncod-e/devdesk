@@ -8,28 +8,38 @@ import type { Project, ProjectSummary, Task, TaskStatus } from '~/types/api'
 definePageMeta({ middleware: 'auth', layout: 'app' })
 
 const route = useRoute()
-const projectId = Number(route.params.id)
+const projectId = computed(() => Number(route.params.id))
 const { api } = useAuth()
 const queryClient = useQueryClient()
 const { confirm } = useConfirm()
 const { success, error } = useToast()
 
 const { data: project } = useQuery({
-  queryKey: ['project', projectId],
-  queryFn: () => api<Project>(`/api/v1/projects/${projectId}`),
+  queryKey: computed(() => ['project', projectId.value]),
+  queryFn: () => api<Project>(`/api/v1/projects/${projectId.value}`),
+  enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value)),
+})
+
+const { workspaceId, setCurrent: setWorkspace } = useWorkspace()
+watch(project, (p) => {
+  if (p && p.workspace_id && p.workspace_id !== workspaceId.value) {
+    setWorkspace(p.workspace_id)
+  }
 })
 const { data: tasks, isPending } = useQuery({
-  queryKey: ['tasks', projectId],
-  queryFn: () => api<Task[]>(`/api/v1/projects/${projectId}/tasks`),
+  queryKey: computed(() => ['tasks', projectId.value]),
+  queryFn: () => api<Task[]>(`/api/v1/projects/${projectId.value}/tasks`),
+  enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value)),
 })
 const { data: summary } = useQuery({
-  queryKey: ['summary', projectId],
-  queryFn: () => api<ProjectSummary>(`/api/v1/projects/${projectId}/summary`),
+  queryKey: computed(() => ['summary', projectId.value]),
+  queryFn: () => api<ProjectSummary>(`/api/v1/projects/${projectId.value}/summary`),
+  enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value)),
 })
 
 const statusColumns: { key: TaskStatus; label: string; dot: string; bar: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-slate-400', bar: 'bg-slate-400/10' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500', bar: 'bg-amber-500/10' },
+  { key: 'todo', label: 'To do', dot: 'bg-blue-500', bar: 'bg-blue-500/10' },
+  { key: 'in_progress', label: 'In progress', dot: 'bg-indigo-500', bar: 'bg-indigo-500/10' },
   { key: 'done', label: 'Done', dot: 'bg-emerald-500', bar: 'bg-emerald-500/10' },
 ]
 
@@ -59,8 +69,8 @@ const views = [
 ] as const
 
 function invalidate() {
-  queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
-  queryClient.invalidateQueries({ queryKey: ['summary', projectId] })
+  queryClient.invalidateQueries({ queryKey: ['tasks', projectId.value] })
+  queryClient.invalidateQueries({ queryKey: ['summary', projectId.value] })
 }
 
 const patchTask = useMutation({
@@ -98,7 +108,7 @@ async function quickAdd(status: TaskStatus) {
   drafts[status] = ''
   try {
     // tasks are created in `todo`; move to the target column if needed
-    const created = await api<Task>(`/api/v1/projects/${projectId}/tasks`, {
+    const created = await api<Task>(`/api/v1/projects/${projectId.value}/tasks`, {
       method: 'POST',
       body: { title },
     })
@@ -142,7 +152,7 @@ const saveTask = useMutation({
       return task
     }
     // Create accepts assignee_ids directly in the body.
-    return api<Task>(`/api/v1/projects/${projectId}/tasks`, {
+    return api<Task>(`/api/v1/projects/${projectId.value}/tasks`, {
       method: 'POST',
       body: { ...fields, assignee_ids },
     })
@@ -312,12 +322,11 @@ async function confirmDelete(t: Task) {
           {{ col.label }}
           <span class="text-ink-subtle">· {{ columns[col.key].length }}</span>
         </div>
-        <button
+        <NuxtLink
           v-for="task in columns[col.key]"
           :key="task.id"
-          type="button"
+          :to="`/app/tasks/${task.id}`"
           class="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-surface-2"
-          @click="startEdit(task)"
         >
           <UiBadge :tone="{ low: 'gray', medium: 'amber', high: 'red' }[task.priority]" class="shrink-0 capitalize">
             <UiIcon name="flag" :size="11" />
@@ -334,7 +343,7 @@ async function confirmDelete(t: Task) {
           <div v-if="task.assignees.length" class="flex shrink-0 items-center -space-x-1.5">
             <UiAvatar v-for="a in task.assignees.slice(0, 3)" :key="a.id" :user="a" :size="22" />
           </div>
-        </button>
+        </NuxtLink>
       </template>
       <p v-if="!tasks?.length" class="px-4 py-10 text-center text-sm text-ink-subtle">
         No tasks yet.

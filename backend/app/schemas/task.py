@@ -37,6 +37,7 @@ class TaskOut(BaseModel):
 
     id: int
     project_id: int
+    workspace_id: int
     title: str
     description: str
     status: str

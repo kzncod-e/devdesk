@@ -2,8 +2,8 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = withDefaults(
-  defineProps<{ open: boolean; title?: string; subtitle?: string; width?: string }>(),
-  { width: 'max-w-lg' },
+  defineProps<{ open: boolean; title?: string; subtitle?: string; width?: string; noHeader?: boolean }>(),
+  { width: 'max-w-lg', noHeader: false },
 )
 const emit = defineEmits<{ close: [] }>()
 
@@ -76,14 +76,14 @@ onBeforeUnmount(() => {
               width,
             ]"
           >
-            <header class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-3.5">
+            <header v-if="!noHeader" class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-3.5">
               <div class="min-w-0">
                 <h2 v-if="title" class="truncate text-heading">{{ title }}</h2>
                 <p v-if="subtitle" class="mt-0.5 text-helper">{{ subtitle }}</p>
               </div>
               <UiIconButton icon="x" label="Close" @click="emit('close')" />
             </header>
-            <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+            <div :class="['flex-1 overflow-y-auto overscroll-contain', noHeader ? '' : 'px-5 py-4']">
               <slot />
             </div>
             <footer v-if="$slots.footer" class="shrink-0 border-t border-line px-5 py-3.5">

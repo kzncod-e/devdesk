@@ -23,6 +23,7 @@ const paths: Record<string, string> = {
   copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   external: '<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
   chevron: '<path d="m9 18 6-6-6-6"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
   layers: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>',

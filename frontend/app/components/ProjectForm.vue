@@ -7,13 +7,24 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { current: currentWorkspace } = useWorkspace()
+
 const name = ref(props.project?.name ?? '')
+const summary = ref('')  // short inline summary (not persisted separately, appended to description)
 const description = ref(props.project?.description ?? '')
 const color = ref(props.project?.color ?? '#6366f1')
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(props.project?.image_url ?? null)
 
-const swatches = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6']
+const swatches = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+  '#f97316', '#f59e0b', '#10b981', '#06b6d4',
+  '#3b82f6', '#64748b',
+]
+const showColorPicker = ref(false)
+
+const statusOptions = ['Backlog', 'Planning', 'Active', 'On Hold', 'Done']
+const selectedStatus = ref(props.project ? 'Active' : 'Backlog')
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const fileError = ref('')
@@ -22,11 +33,11 @@ function onFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
-    fileError.value = 'That file isn’t an image. Choose a PNG, JPG or WebP.'
+    fileError.value = "That file isn't an image. Choose PNG, JPG or WebP."
     return
   }
   if (file.size > 5 * 1024 * 1024) {
-    fileError.value = 'Image is larger than 5 MB. Pick a smaller file.'
+    fileError.value = 'Image must be under 5 MB.'
     return
   }
   fileError.value = ''
@@ -39,71 +50,206 @@ function clearImage() {
   imagePreview.value = null
   if (fileInput.value) fileInput.value.value = ''
 }
+
+const workspaceLabel = computed(() =>
+  (currentWorkspace?.value?.name ?? 'Workspace').slice(0, 3).toUpperCase()
+)
 </script>
 
 <template>
-  <form class="flex flex-col gap-5" @submit.prevent="emit('submit', { name, description, color, image: imageFile })">
-    <label class="flex flex-col gap-1.5">
-      <span class="field-label">Name</span>
-      <input v-model="name" type="text" required maxlength="200" placeholder="Project name…" class="field-input">
-    </label>
-
-    <label class="flex flex-col gap-1.5">
-      <span class="field-label">Description</span>
-      <textarea v-model="description" rows="3" placeholder="What is this project about?" class="field-input resize-none" />
-    </label>
-
-    <div class="flex flex-col gap-2" role="group" aria-label="Color">
-      <span class="field-label">Color</span>
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          v-for="s in swatches"
-          :key="s"
-          type="button"
-          class="size-7 rounded-full ring-2 ring-offset-2 ring-offset-surface transition hover:scale-110"
-          :class="color === s ? 'ring-ink' : 'ring-transparent'"
-          :style="{ backgroundColor: s }"
-          :aria-label="`Use color ${s}`"
-          @click="color = s"
-        />
-        <label class="relative size-7 cursor-pointer overflow-hidden rounded-full border border-line">
-          <input v-model="color" type="color" aria-label="Custom color" class="absolute inset-0 size-full cursor-pointer opacity-0">
-          <span class="grid size-full place-items-center text-ink-subtle"><UiIcon name="plus" :size="14" /></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2">
-      <span class="field-label">Cover image <span class="font-normal text-ink-subtle">(optional · PNG, JPG, WebP · max 5 MB)</span></span>
-      <div
-        v-if="imagePreview"
-        class="relative overflow-hidden rounded-lg border border-line"
-      >
-        <img :src="imagePreview" alt="Cover image preview" width="512" height="128" class="h-32 w-full object-cover">
-        <button
-          type="button"
-          class="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70"
-          aria-label="Remove image"
-          @click="clearImage"
+  <form
+    class="flex flex-col"
+    @submit.prevent="emit('submit', { name, description, color, image: imageFile })"
+  >
+    <!-- ── Linear-style breadcrumb header ── -->
+    <div class="flex shrink-0 items-center justify-between border-b border-line px-5 py-3">
+      <div class="flex items-center gap-2 text-[0.8125rem]">
+        <span
+          class="inline-grid size-5 shrink-0 place-items-center rounded bg-accent text-[10px] font-bold text-accent-fg"
         >
-          <UiIcon name="x" :size="12" />
-        </button>
+          {{ workspaceLabel }}
+        </span>
+        <span class="text-ink-muted">{{ currentWorkspace?.name ?? 'Workspace' }}</span>
+        <UiIcon name="chevron" :size="13" class="text-ink-subtle" />
+        <span class="font-medium text-ink">{{ project ? 'Edit project' : 'New project' }}</span>
       </div>
-      <label
-        v-else
-        class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-surface-2 py-6 text-sm text-ink-subtle transition hover:border-line-strong hover:bg-surface-3"
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Close"
+        @click="emit('cancel')"
       >
-        <UiIcon name="image" :size="20" />
-        <span>Click to upload image</span>
-        <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only" @change="onFileChange">
-      </label>
-      <p v-if="fileError" role="alert" class="text-xs text-danger">{{ fileError }}</p>
+        <UiIcon name="x" :size="16" />
+      </button>
     </div>
 
-    <div class="flex justify-end gap-2 pt-4">
+    <!-- ── Body ── -->
+    <div class="flex-1 overflow-y-auto overscroll-contain">
+      <div class="px-6 pt-6 pb-2 space-y-0">
+        <!-- Icon + Name + Summary stacked block -->
+        <div class="flex items-start gap-3.5">
+          <!-- Color / Icon picker button -->
+          <div class="relative mt-1 shrink-0">
+            <button
+              type="button"
+              class="grid size-9 place-items-center rounded-lg border border-line bg-surface-2 text-ink-muted transition hover:border-line-strong hover:bg-surface-3"
+              :style="{ color }"
+              aria-label="Pick project color"
+              @click="showColorPicker = !showColorPicker"
+            >
+              <UiIcon name="folder" :size="18" />
+            </button>
+
+          <!-- Color picker dropdown -->
+          <Transition name="pop">
+            <div v-if="showColorPicker" class="absolute left-0 top-11 z-50">
+              <!-- Backdrop to close picker -->
+              <div class="fixed inset-0 z-0" @click="showColorPicker = false" />
+              <div
+                class="relative z-10 flex flex-wrap gap-1.5 rounded-card border border-line bg-surface p-3 shadow-pop"
+                style="width: 188px"
+              >
+                <button
+                  v-for="s in swatches"
+                  :key="s"
+                  type="button"
+                  class="size-6 rounded-full ring-2 ring-offset-1 ring-offset-surface transition hover:scale-110"
+                  :class="color === s ? 'ring-ink' : 'ring-transparent'"
+                  :style="{ backgroundColor: s }"
+                  :aria-label="`Color ${s}`"
+                  @click="color = s; showColorPicker = false"
+                />
+                <label class="relative size-6 cursor-pointer overflow-hidden rounded-full border border-line" title="Custom color">
+                  <input
+                    v-model="color"
+                    type="color"
+                    class="absolute inset-0 size-full cursor-pointer opacity-0"
+                    @change="showColorPicker = false"
+                  />
+                  <span class="grid size-full place-items-center text-[10px] text-ink-subtle">+</span>
+                </label>
+              </div>
+            </div>
+          </Transition>
+          </div>
+
+          <!-- Inline name + summary inputs -->
+          <div class="min-w-0 flex-1 space-y-1">
+            <input
+              v-model="name"
+              type="text"
+              required
+              maxlength="200"
+              placeholder="Project name"
+              class="w-full bg-transparent text-[1.25rem] font-semibold tracking-tight text-ink placeholder:text-ink-subtle outline-none"
+              autofocus
+            />
+            <input
+              v-model="summary"
+              type="text"
+              maxlength="300"
+              placeholder="Add a short summary..."
+              class="w-full bg-transparent text-sm text-ink-muted placeholder:text-ink-subtle outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- ── Metadata chips row ── -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-4 pb-2 border-b border-line">
+          <!-- Status chip -->
+          <UiMenu align="left">
+            <template #trigger>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
+              >
+                <span class="size-1.5 rounded-full bg-slate-400" />
+                {{ selectedStatus }}
+              </button>
+            </template>
+            <UiMenuItem
+              v-for="s in statusOptions"
+              :key="s"
+              @click="selectedStatus = s"
+            >
+              {{ s }}
+            </UiMenuItem>
+          </UiMenu>
+
+          <!-- Color chip -->
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
+            @click="showColorPicker = !showColorPicker"
+          >
+            <span
+              class="size-1.5 rounded-full transition"
+              :style="{ backgroundColor: color }"
+            />
+            Color
+          </button>
+
+          <!-- Cover image chip -->
+          <label
+            class="flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
+          >
+            <UiIcon name="image" :size="11" />
+            {{ imagePreview ? 'Change cover' : 'Cover' }}
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="sr-only"
+              @change="onFileChange"
+            />
+          </label>
+
+          <button
+            v-if="imagePreview"
+            type="button"
+            class="flex items-center gap-1 rounded-full border border-danger/30 bg-danger-soft px-2.5 py-0.5 text-xs font-medium text-danger transition"
+            @click="clearImage"
+          >
+            <UiIcon name="x" :size="10" />
+            Remove
+          </button>
+        </div>
+
+        <p v-if="fileError" role="alert" class="pt-2 text-xs text-danger">{{ fileError }}</p>
+
+        <!-- Cover image preview -->
+        <div v-if="imagePreview" class="relative mt-3 overflow-hidden rounded-card border border-line">
+          <img :src="imagePreview" alt="Cover" class="h-28 w-full object-cover" />
+          <button
+            type="button"
+            class="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+            aria-label="Remove image"
+            @click="clearImage"
+          >
+            <UiIcon name="x" :size="12" />
+          </button>
+        </div>
+
+        <!-- ── Description (document feel) ── -->
+        <textarea
+          v-model="description"
+          placeholder="Write a description, a project brief, or collect ideas..."
+          class="mt-4 min-h-[120px] w-full resize-none bg-transparent text-sm leading-relaxed text-ink placeholder:text-ink-subtle outline-none"
+          rows="6"
+        />
+      </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div class="flex shrink-0 items-center justify-end gap-2 border-t border-line px-5 py-3.5">
       <UiButton variant="ghost" type="button" @click="emit('cancel')">Cancel</UiButton>
-      <UiButton variant="primary" type="submit" :loading="busy" icon="check">
-        {{ props.project ? 'Save changes' : 'Create project' }}
+      <UiButton
+        variant="primary"
+        type="submit"
+        :loading="busy"
+        :disabled="!name.trim()"
+      >
+        {{ project ? 'Save changes' : 'Create project' }}
       </UiButton>
     </div>
   </form>

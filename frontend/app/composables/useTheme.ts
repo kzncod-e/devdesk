@@ -4,7 +4,7 @@ const STORAGE_KEY = 'devdesk:theme'
 
 /** Reactive light/dark theme, persisted to localStorage and reflected on <html>. */
 export function useTheme() {
-  const mode = useState<ThemeMode>('theme:mode', () => 'light')
+  const mode = useState<ThemeMode>('theme:mode', () => 'dark')
 
   function apply(next: ThemeMode) {
     mode.value = next
@@ -18,8 +18,7 @@ export function useTheme() {
   function init() {
     if (!import.meta.client) return
     const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    apply(stored ?? (prefersDark ? 'dark' : 'light'))
+    apply(stored ?? 'dark')
   }
 
   function toggle() {

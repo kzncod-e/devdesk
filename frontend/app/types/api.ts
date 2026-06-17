@@ -43,6 +43,7 @@ export type ProjectStatus = 'active' | 'archived'
 
 export interface Project {
   id: number
+  workspace_id: number
   name: string
   description: string
   status: ProjectStatus
@@ -62,6 +63,7 @@ export interface UserBrief {
 export interface Task {
   id: number
   project_id: number
+  workspace_id: number
   title: string
   description: string
   status: TaskStatus

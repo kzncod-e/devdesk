@@ -326,3 +326,9 @@ CLOUDINARY_API_SECRET=...
 5. **TanStack Query `enabled` guard**: pass a `computed(() => bool)` or `MaybeRef<boolean>`, not a raw expression. E.g. `enabled: isAdmin` where `isAdmin` is a computed ref.
 
 6. **`FormData` uploads through `api()`**: `ofetch` detects `FormData` body and does NOT set `Content-Type` — the browser sets the multipart boundary. Do not manually set `Content-Type` for uploads.
+
+7. **Nuxt Dynamic Route Parameter Reactivity**: Never extract route parameters statically inside page setups (e.g. `const id = Number(route.params.id)`). Since Nuxt reuses component instances when moving between routes of the same template, `setup()` is not re-executed. Always wrap parameter extraction in a computed property (e.g. `const id = computed(() => Number(route.params.id))`), wrap TanStack `queryKey` in a computed array (`computed(() => ['key', id.value])`), and fetch using `.value`.
+
+8. **Route Transition Safety**: Always add path checks in the `enabled` configuration of page-specific queries (e.g. `enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value))`). This prevents queries from firing with mismatching parameters of new pages during transition before the page unmounts, preventing unhandled 404/422 page crashes.
+
+9. **Workspace-Independent Resource Lookups**: Detail endpoints (like `/tasks/{id}`, `/projects/{id}`, or `/projects/{id}/summary`) must resolve resource IDs globally and verify user membership dynamically in the database instead of scoping via header-based workspace scoping. This prevents 404s on direct URL deep links. On the frontend, watch the fetched resource's `workspace_id` and call `setWorkspace(id)` to automatically align the workspace context.
