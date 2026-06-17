@@ -37,16 +37,11 @@ async function submit() {
     />
 
     <div class="enter-rise relative w-full max-w-sm">
-      <NuxtLink to="/" class="mb-6 flex items-center justify-center gap-2.5">
-        <span
-          class="grid size-9 place-items-center rounded-xl bg-accent text-accent-fg shadow-sm"
-        >
-          <UiIcon name="layers" :size="19" />
-        </span>
-        <span class="text-lg font-semibold tracking-tight">DevDesk</span>
+      <NuxtLink to="/" class="mb-6 flex justify-center">
+        <UiLogo :size="30" show-name />
       </NuxtLink>
 
-      <div class="rounded-2xl border border-line bg-surface p-7 shadow-card">
+      <div class="rounded-card border border-line bg-surface p-7 shadow-card">
         <h1 class="text-xl font-semibold tracking-tight">Welcome back</h1>
         <p class="mt-1 text-sm text-ink-muted">Log in to your workspace.</p>
 

@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
       <div
         v-if="open"
         :class="[
-          'absolute z-40 mt-2 min-w-48 origin-top overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-pop',
+          'absolute z-40 mt-1.5 min-w-48 origin-top overflow-hidden rounded-card border border-line bg-surface p-1 shadow-pop',
           align === 'right' ? 'right-0' : 'left-0',
         ]"
         role="menu"

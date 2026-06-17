@@ -71,22 +71,22 @@ onBeforeUnmount(() => {
             aria-modal="true"
             :aria-label="title"
             :class="[
-              'flex w-full flex-col rounded-2xl border border-line bg-surface shadow-overlay',
-              'max-h-[90dvh]',
+              'flex w-full flex-col rounded-modal border border-line bg-surface shadow-overlay',
+              'max-h-[88dvh]',
               width,
             ]"
           >
-            <header class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-5">
+            <header class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-3.5">
               <div class="min-w-0">
-                <h2 v-if="title" class="truncate text-lg font-semibold text-ink">{{ title }}</h2>
-                <p v-if="subtitle" class="mt-0.5 text-sm text-ink-muted">{{ subtitle }}</p>
+                <h2 v-if="title" class="truncate text-heading">{{ title }}</h2>
+                <p v-if="subtitle" class="mt-0.5 text-helper">{{ subtitle }}</p>
               </div>
               <UiIconButton icon="x" label="Close" @click="emit('close')" />
             </header>
-            <div class="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+            <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
               <slot />
             </div>
-            <footer v-if="$slots.footer" class="shrink-0 border-t border-line px-6 py-4">
+            <footer v-if="$slots.footer" class="shrink-0 border-t border-line px-5 py-3.5">
               <slot name="footer" />
             </footer>
           </div>

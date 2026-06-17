@@ -36,11 +36,8 @@ const tabs = [
   <div class="min-h-screen bg-canvas text-ink">
     <header class="border-b border-line bg-surface/70 backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4 md:px-8">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <span class="grid size-8 place-items-center rounded-lg bg-accent text-accent-fg">
-            <UiIcon name="layers" :size="18" />
-          </span>
-          <span class="text-sm font-semibold">DevDesk</span>
+        <NuxtLink to="/">
+          <UiLogo :size="26" show-name />
         </NuxtLink>
         <nav class="ml-auto flex items-center gap-2">
           <NuxtLink to="/login" class="text-sm font-medium text-ink-muted transition hover:text-ink">

@@ -135,23 +135,19 @@ const initials = computed(() =>
       <UiMenu align="left" class="mb-5 block">
         <template #trigger>
           <button
-            class="flex w-full items-center gap-2.5 rounded-lg border border-line bg-surface px-2.5 py-2 text-left shadow-sm transition hover:border-line-strong"
+            class="flex w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-left transition hover:bg-surface-2"
             aria-label="Switch workspace"
           >
-            <span
-              class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-fg shadow-sm"
-            >
-              <UiIcon name="layers" :size="18" />
-            </span>
+            <UiLogo :size="28" />
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-semibold">{{
+              <span class="block truncate text-[0.8125rem] font-semibold">{{
                 currentWorkspace?.name ?? "DevDesk"
               }}</span>
               <span class="block truncate text-[11px] capitalize text-ink-subtle">{{
                 currentWorkspace?.role ?? "workspace"
               }}</span>
             </span>
-            <UiIcon name="chevronDown" :size="15" class="shrink-0 text-ink-subtle" />
+            <UiIcon name="chevronDown" :size="14" class="shrink-0 text-ink-subtle" />
           </button>
         </template>
         <p
@@ -196,14 +192,14 @@ const initials = computed(() =>
         <div>
           <div
             :class="[
-              'group flex items-center gap-2.5 rounded-lg pl-3 pr-1.5 text-sm font-medium transition-colors',
+              'group flex items-center gap-2.5 rounded-control pl-2.5 pr-1.5 text-[0.8125rem] font-medium transition-colors',
               onProjects ? 'bg-accent-soft text-accent' : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
             ]"
           >
-            <NuxtLink to="/app" class="flex flex-1 items-center gap-2.5 py-2">
+            <NuxtLink to="/app" class="flex flex-1 items-center gap-2.5 py-1.5">
               <UiIcon
                 name="folder"
-                :size="18"
+                :size="16"
                 :class="onProjects ? 'text-accent' : 'text-ink-subtle group-hover:text-ink-muted'"
               />
               Projects
@@ -252,7 +248,7 @@ const initials = computed(() =>
           :key="item.to"
           :to="item.to"
           :class="[
-            'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            'group flex items-center gap-2.5 rounded-control px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors',
             isActive(item.to)
               ? 'bg-accent-soft text-accent'
               : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
@@ -260,7 +256,7 @@ const initials = computed(() =>
         >
           <UiIcon
             :name="item.icon"
-            :size="18"
+            :size="16"
             :class="isActive(item.to) ? 'text-accent' : 'text-ink-subtle group-hover:text-ink-muted'"
           />
           {{ item.label }}
@@ -294,12 +290,8 @@ const initials = computed(() =>
       <header
         class="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/70 px-4 backdrop-blur md:px-6"
       >
-        <NuxtLink to="/app" class="flex items-center gap-2 md:hidden">
-          <span
-            class="grid size-7 place-items-center rounded-lg bg-accent text-accent-fg"
-          >
-            <UiIcon name="layers" :size="16" />
-          </span>
+        <NuxtLink to="/app" class="flex items-center md:hidden">
+          <UiLogo :size="26" />
         </NuxtLink>
 
         <button

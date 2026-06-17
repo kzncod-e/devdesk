@@ -158,28 +158,80 @@ const mut = useMutation({ mutationFn: ..., onSuccess: () => queryClient.invalida
 
 `api()` in `useAuth.ts` is an authenticated `$fetch` wrapper — adds `Authorization: Bearer <token>` and transparently retries once after a 401 (refresh flow). Pass `FormData` as `body` for file uploads; ofetch detects it and does NOT set `Content-Type` (browser sets multipart boundary automatically).
 
-### Design System
+### Design Language  (READ BEFORE BUILDING ANY UI — these rules are binding)
 
-Tailwind v4 with `@theme inline` CSS custom properties. **Never use raw hex or `dark:` utility variants** — always use semantic token utilities.
+DevDesk targets the polish of **Linear, Stripe, Vercel, Raycast, and Notion**: a clean,
+minimal, enterprise-grade SaaS aesthetic that feels handcrafted by a senior product
+designer — never generic or "AI-generated." Every screen, component, form, modal, table,
+card, and page **must** follow this system. When a design choice is ambiguous, choose the
+quieter, denser, more intentional option — the one Linear would ship.
 
-**Token map (`app/assets/css/main.css`):**
+**Non-negotiable principles**
+- **Borders over shadows.** Separate surfaces with `border-line`, not drop shadows. Shadows
+  are whisper-soft and reserved for true overlays (menus, modals, toasts). Never add heavy
+  `shadow-lg`/`shadow-xl` to cards.
+- **Restrained radius.** Use the radius scale only: `rounded-control` (7px — buttons, inputs,
+  chips, menu items), `rounded-card` (10px — cards, panels, menus), `rounded-modal` (12px —
+  modals). Never `rounded-xl`/`rounded-2xl`/`rounded-3xl` on UI chrome; never `rounded-full`
+  except avatars, dots, and small pill badges.
+- **8px spacing grid.** Pad and gap in multiples of 4/8 (`gap-2`, `p-4`, `px-5 py-3.5`…).
+  Controls are dense (h-7/h-8); content areas are generous. Avoid arbitrary one-off spacing.
+- **Strong hierarchy, quiet color.** Color is mostly ink + surfaces + a single accent. The
+  accent (indigo) marks one primary action / active state per view — don't spray it around.
+- **Compact, content-driven sizing.** Modals and forms are sized to their content, not
+  stretched to fill. No oversized hero headings, no centered forms marooned in empty space.
+- **Refined micro-interactions.** Transitions are 120–200ms, `ease-out-soft`. Subtle
+  `active:scale-[0.98]`, gentle hover state changes. Nothing bouncy or flashy.
+
+**Typography scale** — prefer these utility classes over ad-hoc `text-2xl`/`font-semibold`:
+
+| Class | Role | Spec |
+|---|---|---|
+| `.text-title` | Page title (one per page) | 21px / 600 / -0.02em |
+| `.text-heading` | Section & card titles, modal titles | 15px / 600 / -0.01em |
+| `.field-label` | Form labels | 13px / 500 / `ink-muted` |
+| `.text-eyebrow` | Uppercase section labels (sidebar groups) | 11px / 600 / 0.06em / `ink-subtle` |
+| `.text-helper` | Helper / description text | 12px / `ink-muted` |
+| `.text-meta` | Metadata, timestamps, counts | 12px / `ink-subtle` |
+| `.tabular` | Numeric columns / counts / times | tabular-nums |
+
+Body text is 14px. Page titles must **not** exceed `.text-title` (21px) — avoid oversized
+headings. Headings get tight optical tracking automatically (`h1–h4` carry `-0.018em`).
+
+**Color tokens** (`app/assets/css/main.css`) — **never use raw hex or `dark:` variants**; the
+`.dark` class on `<html>` flips every token automatically.
 
 | Token | Utility | Purpose |
 |---|---|---|
-| `--canvas` | `bg-canvas` | Page background |
-| `--surface` | `bg-surface` | Card / panel background |
-| `--surface-2` | `bg-surface-2` | Slightly elevated surface |
-| `--surface-3` | `bg-surface-3` | Input fills, hover states |
-| `--line` | `border-line` | Default border |
+| `--canvas` | `bg-canvas` | Page background (near-black in dark) |
+| `--surface` | `bg-surface` | Card / panel background (lifts only slightly) |
+| `--surface-2` | `bg-surface-2` | Hover / elevated surface |
+| `--surface-3` | `bg-surface-3` | Input fills, pressed states |
+| `--line` | `border-line` | Default border (does the separating work) |
 | `--line-strong` | `border-line-strong` | Hover / focus border |
-| `--ink` | `text-ink` | Primary text |
-| `--ink-muted` | `text-ink-muted` | Secondary text |
-| `--ink-subtle` | `text-ink-subtle` | Placeholder / disabled |
-| `--accent` | `text-accent`, `bg-accent` | Brand / interactive color (indigo) |
-| `--accent-soft` | `bg-accent-soft` | Tinted accent background |
-| `--accent-fg` | `text-accent-fg` | Text on accent fill |
+| `--ink` / `--ink-muted` / `--ink-subtle` | `text-ink*` | Primary / secondary / placeholder text |
+| `--accent` / `--accent-hover` | `bg-accent` `text-accent` | Single interactive/brand color (indigo) |
+| `--accent-soft` | `bg-accent-soft` | Tinted accent bg (active nav, subtle btn) |
+| `--accent-fg` | `text-accent-fg` | Text on an accent fill (white) |
+| `--success/danger/warning(-soft)` | `text-*` `bg-*-soft` | Status only |
 
-Dark mode is a `.dark` class on `<html>` — the CSS vars flip automatically. No `dark:` variants needed.
+**Component conventions**
+- **Buttons** → always `UiButton`. `primary` = the one key action (accent fill, flat);
+  `secondary` = bordered; `ghost` = toolbar/tertiary; `subtle`/`danger` for tinted. Sizes
+  `sm`/`md`/`lg` = h-7/h-8/h-10. Flat — no decorative shadows.
+- **Inputs** → `.field-input` + `.field-label`. Flat, border-led, 7px radius, restrained
+  3px focus ring (no heavy glow). Group related fields; pair label + helper text.
+- **Modals** → `UiModal`, default `max-w-lg`; widen only when content demands (`max-w-2xl`).
+  Compact 12px radius, `px-5 py-3.5` header/footer, `px-5 py-4` body. Title uses `.text-heading`.
+- **Menus / dropdowns** → `UiMenu` + `UiMenuItem`. 10px radius, `shadow-pop`, dense 13px items.
+- **Cards** → `border border-line bg-surface rounded-card`, padding `p-4`/`p-5`. Hover lifts
+  border to `border-line-strong` (+ optional `shadow-card-hover`), never a heavy shadow.
+- **Badges/chips** → `UiBadge` (status pills). Tag chips use the registry color tinted at
+  ~10% bg with the solid color for text + dot.
+- **Tables** → header row `bg-surface-2`, `text-eyebrow`-style headers, `divide-y divide-line`,
+  hover `bg-surface-2`, numeric cells `.tabular`. Subtle borders, no zebra stripes.
+- **Brand** → `UiLogo` (the `[›` framed-prompt mark). Never reintroduce generic icon-in-a-box
+  brand tiles, gradients, or blobs.
 
 **Tailwind v4 note:** use `bg-linear-to-b` not `bg-gradient-to-b`.
 
@@ -189,7 +241,8 @@ All components are in `app/components/`. Use these instead of raw HTML elements:
 
 | Component | Usage |
 |---|---|
-| `UiButton` | `variant="primary\|ghost\|danger"`, `icon="..."`, `:loading` |
+| `UiLogo` | Brand mark (`[›`). Props: `size`, `variant="tile\|mark"`, `show-name`. Use for all DevDesk branding. |
+| `UiButton` | `variant="primary\|secondary\|ghost\|subtle\|danger"`, `size="sm\|md\|lg"`, `icon="..."`, `:loading` |
 | `UiModal` | Centered dialog. Props: `open`, `title`, `subtitle`, `width`. Emits `close`. Use for all CRUD forms. |
 | `UiDrawer` | Right-side slide-in. Exists but **not used for forms** — UiModal is preferred. |
 | `UiConfirm` | Global singleton. Use `useConfirm().confirm({ title, message, confirmLabel, danger })` → returns `Promise<boolean>`. |

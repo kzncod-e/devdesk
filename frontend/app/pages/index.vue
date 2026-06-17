@@ -79,9 +79,7 @@ onBeforeUnmount(() => { cancelAnimationFrame(frame); detach?.() })
     <header class="relative z-30 px-4 pt-4 sm:px-6">
       <div class="cz-glass mx-auto flex max-w-6xl items-center justify-between rounded-2xl px-4 py-2.5 sm:px-5">
         <div class="flex items-center gap-2.5">
-          <span class="grid size-8 place-items-center rounded-xl bg-accent text-accent-fg shadow-sm">
-            <UiIcon name="layers" :size="17" />
-          </span>
+          <UiLogo :size="30" />
           <span class="cz-display text-[15px] font-bold tracking-tight text-ink">devdesk</span>
           <span class="ml-1 hidden rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[10px] text-ink-muted sm:inline">
             v2.0
