@@ -83,6 +83,7 @@ export interface ProjectSummary {
 export interface Snippet {
   id: number
   project_id: number | null
+  collection_id: number | null
   title: string
   language: string
   code: string
@@ -93,6 +94,7 @@ export interface Snippet {
 export interface Bookmark {
   id: number
   project_id: number | null
+  collection_id: number | null
   url: string
   title: string
   description: string
@@ -175,4 +177,30 @@ export interface UseTemplateResult {
   kind: TemplateKind
   project_id?: number | null
   snippet_id?: number | null
+}
+
+export type CollectionKind = 'snippet' | 'bookmark'
+
+export interface Collection {
+  id: number
+  workspace_id: number
+  name: string
+  kind: CollectionKind
+  parent_id: number | null
+}
+
+export interface Tag {
+  id: number
+  name: string
+  color: string
+}
+
+export type SavedFilterKind = 'snippet' | 'bookmark' | 'task' | 'project'
+
+export interface SavedFilter {
+  id: number
+  name: string
+  kind: SavedFilterKind
+  query: Record<string, unknown>
+  created_at: string
 }

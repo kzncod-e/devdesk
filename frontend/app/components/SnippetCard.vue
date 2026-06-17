@@ -4,10 +4,18 @@ import { ref } from 'vue'
 import CodeBlock from '~/components/CodeBlock.vue'
 import type { Snippet } from '~/types/api'
 
-defineProps<{ snippet: Snippet }>()
+const props = withDefaults(
+  defineProps<{ snippet: Snippet; tagColors?: Record<string, string> }>(),
+  { tagColors: () => ({}) },
+)
 defineEmits<{ edit: []; delete: []; template: [] }>()
 
 const expanded = ref(false)
+
+// Presentational: colors are supplied by the parent (from the tag registry).
+function colorOf(tag: string): string {
+  return props.tagColors[tag.toLowerCase()] ?? '#6366f1'
+}
 </script>
 
 <template>
@@ -51,9 +59,10 @@ const expanded = ref(false)
       <span
         v-for="tag in snippet.tags"
         :key="tag"
-        class="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-muted"
+        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+        :style="{ backgroundColor: `${colorOf(tag)}1a`, color: colorOf(tag) }"
       >
-        <UiIcon name="tag" :size="11" class="text-ink-subtle" />
+        <span class="size-1.5 rounded-full" :style="{ backgroundColor: colorOf(tag) }" />
         {{ tag }}
       </span>
     </footer>

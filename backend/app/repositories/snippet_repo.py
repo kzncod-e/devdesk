@@ -12,6 +12,7 @@ def _to_api(s: Snippet) -> dict:
     return {
         "id": s.id,
         "project_id": s.project_id,
+        "collection_id": s.collection_id,
         "title": s.title,
         "language": s.language,
         "code": s.code,
@@ -52,10 +53,11 @@ class SnippetRepository:
         self.session = session
 
     async def create(self, *, workspace_id: int, owner_id: int, title: str, language: str,
-                     code: str, tags: list[str], notes: str, project_id: int | None) -> dict:
+                     code: str, tags: list[str], notes: str, project_id: int | None,
+                     collection_id: int | None = None) -> dict:
         s = Snippet(workspace_id=workspace_id, owner_id=owner_id, title=title,
                     language=language, code=code, tags=tags, notes=notes,
-                    project_id=project_id)
+                    project_id=project_id, collection_id=collection_id)
         self.session.add(s)
         await self.session.flush()
         await self.session.refresh(s)
@@ -63,10 +65,13 @@ class SnippetRepository:
 
     async def list(self, *, workspace_id: int, project_id: int | None = None,
                    tag: str | None = None, language: str | None = None,
+                   collection_id: int | None = None,
                    limit: int, offset: int) -> list[dict]:
         stmt = select(Snippet).where(Snippet.workspace_id == workspace_id)
         if project_id is not None:
             stmt = stmt.where(Snippet.project_id == project_id)
+        if collection_id is not None:
+            stmt = stmt.where(Snippet.collection_id == collection_id)
         if tag is not None:
             stmt = stmt.where(_tag_filter(self.session, tag))
         if language is not None:

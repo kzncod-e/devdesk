@@ -10,6 +10,7 @@ class SnippetIn(BaseModel):
     tags: list[str] = Tags
     notes: str = ""
     project_id: int | None = None
+    collection_id: int | None = None
 
 
 class SnippetPatch(BaseModel):
@@ -19,11 +20,13 @@ class SnippetPatch(BaseModel):
     tags: list[str] | None = Field(default=None, max_length=20)
     notes: str | None = None
     project_id: int | None = None
+    collection_id: int | None = None
 
 
 class SnippetOut(BaseModel):
     id: int
     project_id: int | None
+    collection_id: int | None = None
     title: str
     language: str
     code: str

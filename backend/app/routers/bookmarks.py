@@ -20,7 +20,8 @@ Deleter = Annotated[WorkspaceContext, Depends(require(Perm.CONTENT_DELETE))]
 async def create_bookmark(body: BookmarkIn, ctx: Writer, svc: Service,
                           background_tasks: BackgroundTasks):
     doc = await svc.create(workspace_id=ctx.workspace_id, owner_id=ctx.user.id,
-                           url=str(body.url), tags=body.tags, project_id=body.project_id)
+                           url=str(body.url), tags=body.tags, project_id=body.project_id,
+                           collection_id=body.collection_id)
     background_tasks.add_task(svc.fetch_and_store_meta, doc["id"], doc["url"])
     return doc
 
@@ -29,10 +30,11 @@ async def create_bookmark(body: BookmarkIn, ctx: Writer, svc: Service,
 async def list_bookmarks(ctx: Reader, svc: Service,
                          project_id: int | None = None,
                          tag: str | None = None,
+                         collection_id: int | None = None,
                          limit: int = Query(50, ge=1, le=100),
                          offset: int = Query(0, ge=0)):
     return await svc.list(workspace_id=ctx.workspace_id, project_id=project_id, tag=tag,
-                          limit=limit, offset=offset)
+                          collection_id=collection_id, limit=limit, offset=offset)
 
 
 @router.get("/{bookmark_id}", response_model=BookmarkOut)

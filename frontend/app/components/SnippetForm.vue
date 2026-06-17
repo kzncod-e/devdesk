@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import TagInput from '~/components/TagInput.vue'
-import type { Project, Snippet } from '~/types/api'
+import type { Collection, Project, Snippet } from '~/types/api'
 
 const props = defineProps<{
   snippet?: Snippet | null
   projects?: Project[]
+  collections?: Collection[]
   busy?: boolean
 }>()
 const emit = defineEmits<{
@@ -15,9 +16,12 @@ const emit = defineEmits<{
     tags: string[]
     notes: string
     project_id: number | null
+    collection_id: number | null
   }]
   cancel: []
 }>()
+
+const { names: tagSuggestions } = useTags()
 
 const title = ref(props.snippet?.title ?? '')
 const language = ref(props.snippet?.language ?? '')
@@ -25,6 +29,7 @@ const code = ref(props.snippet?.code ?? '')
 const tags = ref<string[]>([...(props.snippet?.tags ?? [])])
 const notes = ref(props.snippet?.notes ?? '')
 const projectId = ref<number | null>(props.snippet?.project_id ?? null)
+const collectionId = ref<number | null>(props.snippet?.collection_id ?? null)
 
 function submit() {
   emit('submit', {
@@ -34,6 +39,7 @@ function submit() {
     tags: tags.value,
     notes: notes.value,
     project_id: projectId.value,
+    collection_id: collectionId.value,
   })
 }
 </script>
@@ -65,16 +71,25 @@ function submit() {
 
     <div class="flex flex-col gap-1.5">
       <span class="field-label">Tags</span>
-      <TagInput v-model="tags" aria-label="Tags" />
+      <TagInput v-model="tags" :suggestions="tagSuggestions" aria-label="Tags" />
     </div>
 
-    <label class="flex flex-col gap-1.5">
-      <span class="field-label">Project</span>
-      <select v-model="projectId" class="field-input">
-        <option :value="null">— none —</option>
-        <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
-    </label>
+    <div class="flex gap-4">
+      <label class="flex flex-1 flex-col gap-1.5">
+        <span class="field-label">Project</span>
+        <select v-model="projectId" class="field-input">
+          <option :value="null">— none —</option>
+          <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+      </label>
+      <label class="flex flex-1 flex-col gap-1.5">
+        <span class="field-label">Collection</span>
+        <select v-model="collectionId" class="field-input">
+          <option :value="null">— none —</option>
+          <option v-for="c in collections ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
+      </label>
+    </div>
 
     <label class="flex flex-col gap-1.5">
       <span class="field-label">Notes</span>

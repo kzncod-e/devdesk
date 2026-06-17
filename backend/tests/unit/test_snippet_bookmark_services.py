@@ -60,10 +60,11 @@ class FakeDocRepo:
 
 class FakeSnippetRepo(FakeDocRepo):
     async def create(self, *, workspace_id, owner_id, title, language, code, tags,
-                     notes, project_id):
+                     notes, project_id, collection_id=None):
         return self._store({"workspace_id": workspace_id, "owner_id": owner_id,
                             "title": title, "language": language, "code": code,
-                            "tags": tags, "notes": notes, "project_id": project_id})
+                            "tags": tags, "notes": notes, "project_id": project_id,
+                            "collection_id": collection_id})
 
 
 class FakeBookmarkRepo(FakeDocRepo):
@@ -71,9 +72,11 @@ class FakeBookmarkRepo(FakeDocRepo):
         super().__init__()
         self.meta_calls = []
 
-    async def create(self, *, workspace_id, owner_id, url, tags, project_id):
+    async def create(self, *, workspace_id, owner_id, url, tags, project_id,
+                     collection_id=None):
         return self._store({"workspace_id": workspace_id, "owner_id": owner_id,
                             "url": url, "tags": tags, "project_id": project_id,
+                            "collection_id": collection_id,
                             "title": "", "description": "", "favicon": "",
                             "fetched_meta": {}})
 

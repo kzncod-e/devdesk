@@ -23,7 +23,7 @@
 | Activity feed, audit log, notifications | ✅ shipped (2.3, 2.4) |
 | Global search (Postgres FTS) + ⌘K actions | ✅ shipped (2.5) |
 | Templates + public gallery | ✅ shipped (2.6) |
-| Collections, normalized tags, saved filters | ❌ not started (2.7) |
+| Collections, tag registry, saved filters | ✅ shipped (2.7) |
 | Comments / @mentions, task side-panel, workflows | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
 
@@ -171,13 +171,24 @@ event backbone** — so build those first.
   links into the app rather than instantiating anonymously; capture is bounded to
   200 tasks/snippets.
 
-### 2.7 Collections, normalized tags, saved filters  ·  **S–M**
-- **DB:** `collections(workspace_id, name, kind, parent_id)`; `tags(workspace_id,
-  name, color)` + polymorphic `taggables(tag_id, entity_type, entity_id)`; saved
-  filters as per-user `JSONB` query blobs.
-- **API:** CRUD for collections + tags; `GET/POST /saved-filters`.
-- **UI:** folder tree for snippets/bookmarks; tag chips with autocomplete; saved
-  views in list headers.
+### 2.7 Collections, tag registry, saved filters  ·  **S–M**  ·  ✅ shipped
+- **DB:** ✅ `collections(workspace_id, name, kind, parent_id)` (self-ref tree);
+  `tags(workspace_id, name, color)` registry; `saved_filters(user_id, workspace_id,
+  name, kind, query jsonb)`; nullable `collection_id` on snippets/bookmarks
+  (migration `b5c6d7e8f9a0`).
+- **Decision — no polymorphic `taggables`:** kept the working GIN-indexable
+  `text[]` tag arrays as the source of truth and added a `tags` *registry* (name→
+  color) that self-populates on snippet/bookmark writes. Avoids the polymorphic-FK
+  anti-pattern and a risky rewrite of every tag path; delivers colored chips +
+  autocomplete + recolor. Rename-tag-everywhere deferred (the one cross-cutting op).
+- **API:** ✅ CRUD `/collections`, `/tags` (list + recolor + delete),
+  `/saved-filters`; `collection_id` filter + field on snippets/bookmarks.
+- **UI:** ✅ snippets page — collections folder rail (create/select/delete +
+  filter), colored tag chips (registry), tag-aware autocomplete in the form,
+  collection selector, and saved "views" (save/apply/delete current filters).
+- **Deferred:** bookmarks page reuse of the same rail/chips (snippets shipped as
+  the flagship); strict cross-workspace `collection_id` validation on assignment
+  (reads stay workspace-isolated); rename-everywhere.
 
 ---
 

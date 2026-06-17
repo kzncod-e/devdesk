@@ -11,6 +11,9 @@ from app.db.postgres import SessionLocal, get_session
 from app.repositories.bookmark_repo import BookmarkRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.snippet_repo import SnippetRepository
+from app.repositories.collection_repo import CollectionRepository
+from app.repositories.saved_filter_repo import SavedFilterRepository
+from app.repositories.tag_repo import TagRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.template_repo import TemplateRepository
 from app.repositories.user_repo import UserRepository
@@ -24,6 +27,9 @@ from app.services.bookmark_service import BookmarkService, FetchHtml, default_fe
 from app.services.project_service import ProjectService
 from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
+from app.services.collection_service import CollectionService
+from app.services.saved_filter_service import SavedFilterService
+from app.services.tag_service import TagService
 from app.services.task_service import TaskService
 from app.services.template_service import TemplateService
 from app.services.user_service import UserService
@@ -75,7 +81,8 @@ def get_task_service(session: Session) -> TaskService:
 
 
 def get_snippet_service(session: Session) -> SnippetService:
-    return SnippetService(session, SnippetRepository(session), ProjectRepository(session))
+    return SnippetService(session, SnippetRepository(session), ProjectRepository(session),
+                          tag_repo=TagRepository(session))
 
 
 def get_html_fetcher() -> FetchHtml:
@@ -88,7 +95,8 @@ def get_bookmark_service(
     fetch_html: Annotated[FetchHtml, Depends(get_html_fetcher)],
 ) -> BookmarkService:
     return BookmarkService(session, BookmarkRepository(session), ProjectRepository(session),
-                           fetch_html=fetch_html, session_factory=maker)
+                           fetch_html=fetch_html, session_factory=maker,
+                           tag_repo=TagRepository(session))
 
 
 def get_search_service(session: Session) -> SearchService:
@@ -98,6 +106,18 @@ def get_search_service(session: Session) -> SearchService:
         SnippetRepository(session),
         BookmarkRepository(session),
     )
+
+
+def get_collection_service(session: Session) -> CollectionService:
+    return CollectionService(session, CollectionRepository(session))
+
+
+def get_tag_service(session: Session) -> TagService:
+    return TagService(session, TagRepository(session))
+
+
+def get_saved_filter_service(session: Session) -> SavedFilterService:
+    return SavedFilterService(session, SavedFilterRepository(session))
 
 
 def get_template_service(session: Session) -> TemplateService:

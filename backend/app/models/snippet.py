@@ -20,6 +20,9 @@ class Snippet(Base):
     project_id: Mapped[int | None] = mapped_column(
         ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    collection_id: Mapped[int | None] = mapped_column(
+        ForeignKey("collections.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(200))
     language: Mapped[str] = mapped_column(String(50))
     code: Mapped[str] = mapped_column(Text, default="")

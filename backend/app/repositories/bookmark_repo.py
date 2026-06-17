@@ -12,6 +12,7 @@ def _to_api(b: Bookmark) -> dict:
     return {
         "id": b.id,
         "project_id": b.project_id,
+        "collection_id": b.collection_id,
         "url": b.url,
         "title": b.title,
         "description": b.description,
@@ -52,19 +53,23 @@ class BookmarkRepository:
         self.session = session
 
     async def create(self, *, workspace_id: int, owner_id: int, url: str,
-                     tags: list[str], project_id: int | None) -> dict:
+                     tags: list[str], project_id: int | None,
+                     collection_id: int | None = None) -> dict:
         b = Bookmark(workspace_id=workspace_id, owner_id=owner_id, url=url,
-                     tags=tags, project_id=project_id)
+                     tags=tags, project_id=project_id, collection_id=collection_id)
         self.session.add(b)
         await self.session.flush()
         await self.session.refresh(b)
         return _to_api(b)
 
     async def list(self, *, workspace_id: int, project_id: int | None = None,
-                   tag: str | None = None, limit: int, offset: int) -> list[dict]:
+                   tag: str | None = None, collection_id: int | None = None,
+                   limit: int, offset: int) -> list[dict]:
         stmt = select(Bookmark).where(Bookmark.workspace_id == workspace_id)
         if project_id is not None:
             stmt = stmt.where(Bookmark.project_id == project_id)
+        if collection_id is not None:
+            stmt = stmt.where(Bookmark.collection_id == collection_id)
         if tag is not None:
             stmt = stmt.where(_tag_filter(self.session, tag))
         stmt = stmt.order_by(Bookmark.created_at.desc()).limit(limit).offset(offset)

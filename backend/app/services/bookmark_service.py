@@ -1,3 +1,7 @@
+# Deferred annotations: the `list` method shadows the builtin in later
+# `tags: list[str]` annotations evaluated at class-body time.
+from __future__ import annotations
+
 from collections.abc import Awaitable, Callable
 
 import httpx
@@ -19,27 +23,33 @@ async def default_fetch_html(url: str) -> str:
 
 class BookmarkService:
     def __init__(self, session: AsyncSession, repo, project_repo, *,
-                 fetch_html: FetchHtml, session_factory=None) -> None:
+                 fetch_html: FetchHtml, session_factory=None, tag_repo=None) -> None:
         self.session = session
         self.repo = repo
         self.project_repo = project_repo
         self.fetch_html = fetch_html
         self.session_factory = session_factory
+        self.tag_repo = tag_repo
 
     async def create(self, *, workspace_id: int, owner_id: int, url: str,
-                     tags: list[str], project_id: int | None) -> dict:
+                     tags: list[str], project_id: int | None,
+                     collection_id: int | None = None) -> dict:
         await self._validate_project(project_id, workspace_id)
         doc = await self.repo.create(workspace_id=workspace_id, owner_id=owner_id,
-                                     url=url, tags=tags, project_id=project_id)
+                                     url=url, tags=tags, project_id=project_id,
+                                     collection_id=collection_id)
+        await self._sync_tags(workspace_id, tags)
         await emit(self.session, "bookmark.created",
                    {"id": doc["id"], "url": url}, workspace_id=workspace_id)
         await self.session.commit()
         return doc
 
     async def list(self, *, workspace_id: int, project_id: int | None = None,
-                   tag: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
+                   tag: str | None = None, collection_id: int | None = None,
+                   limit: int = 50, offset: int = 0) -> list[dict]:
         return await self.repo.list(workspace_id=workspace_id, project_id=project_id,
-                                    tag=tag, limit=limit, offset=offset)
+                                    tag=tag, collection_id=collection_id,
+                                    limit=limit, offset=offset)
 
     async def get(self, bookmark_id: int, workspace_id: int) -> dict:
         doc = await self.repo.get(bookmark_id, workspace_id)
@@ -53,6 +63,8 @@ class BookmarkService:
         doc = await self.repo.update(bookmark_id, workspace_id, fields=fields)
         if doc is None:
             raise NotFoundError("Bookmark not found")
+        if "tags" in fields and fields["tags"]:
+            await self._sync_tags(workspace_id, fields["tags"])
         await self.session.commit()
         return doc
 
@@ -85,3 +97,7 @@ class BookmarkService:
             return
         if await self.project_repo.get_for_workspace(project_id, workspace_id) is None:
             raise NotFoundError("Project not found")
+
+    async def _sync_tags(self, workspace_id: int, tags: list[str]) -> None:
+        if self.tag_repo is not None and tags:
+            await self.tag_repo.sync(workspace_id, tags)

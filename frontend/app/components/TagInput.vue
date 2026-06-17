@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { ref, useAttrs } from 'vue'
+import { computed, ref, useAttrs } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
-const props = defineProps<{ modelValue: string[] }>()
+const props = defineProps<{ modelValue: string[]; suggestions?: string[] }>()
 const emit = defineEmits<{ 'update:modelValue': [tags: string[]] }>()
 
 const attrs = useAttrs()
 const inputLabel = (attrs['aria-label'] as string) || 'Add tag'
+const listId = `tag-suggestions-${Math.random().toString(36).slice(2, 8)}`
+
+// Suggest registry tags not already chosen.
+const available = computed(() =>
+  (props.suggestions ?? []).filter((s) => !props.modelValue.includes(s)),
+)
 
 const draft = ref('')
 
@@ -54,11 +60,15 @@ function onBackspace() {
       v-model="draft"
       type="text"
       :aria-label="inputLabel"
+      :list="available.length ? listId : undefined"
       autocapitalize="off"
       placeholder="Add tag…"
       class="min-w-24 flex-1 border-none bg-transparent py-0.5 text-sm text-ink outline-none placeholder:text-ink-subtle"
       @keydown.enter.prevent="addTag"
       @keydown.delete="onBackspace"
     >
+    <datalist v-if="available.length" :id="listId">
+      <option v-for="s in available" :key="s" :value="s" />
+    </datalist>
   </div>
 </template>
