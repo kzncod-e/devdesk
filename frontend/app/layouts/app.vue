@@ -404,22 +404,45 @@ const initials = computed(() =>
 
     <UiModal
       :open="showCreateWorkspace"
-      title="New workspace"
-      subtitle="Group projects, snippets and bookmarks for a team."
+      no-header
+      width="max-w-md"
       @close="showCreateWorkspace = false"
     >
-      <form class="flex flex-col gap-4" @submit.prevent="onCreateWorkspace">
-        <div>
-          <label class="field-label" for="ws-name">Name</label>
-          <input
-            id="ws-name"
-            v-model="newWorkspaceName"
-            class="field-input mt-1"
-            placeholder="Acme Inc"
-            maxlength="200"
-          />
+      <form class="flex flex-col" @submit.prevent="onCreateWorkspace">
+        <!-- ── Linear-style breadcrumb header ── -->
+        <div class="flex shrink-0 items-center justify-between border-b border-line px-5 py-3">
+          <div class="flex items-center gap-2 text-[0.8125rem]">
+            <span class="font-medium text-ink">New workspace</span>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Close"
+            @click="showCreateWorkspace = false"
+          >
+            <UiIcon name="x" :size="16" />
+          </button>
         </div>
-        <div class="flex justify-end gap-2 pt-2">
+
+        <!-- ── Body ── -->
+        <div class="p-6">
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label block uppercase tracking-wider text-[10px] font-semibold">Workspace Name</span>
+            <input
+              v-model="newWorkspaceName"
+              type="text"
+              required
+              maxlength="200"
+              placeholder="Acme Inc"
+              class="w-full bg-transparent text-[1.25rem] font-semibold tracking-tight text-ink placeholder:text-ink-subtle outline-none"
+              autofocus
+            />
+            <p class="text-xs text-ink-subtle mt-1.5">Group projects, snippets and bookmarks for a team.</p>
+          </label>
+        </div>
+
+        <!-- ── Footer ── -->
+        <div class="flex shrink-0 items-center justify-end gap-2 border-t border-line px-5 py-3.5">
           <UiButton
             variant="ghost"
             type="button"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import TagInput from '~/components/TagInput.vue'
 import type { Collection, Project, Snippet } from '~/types/api'
 
@@ -21,6 +22,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { current: currentWorkspace } = useWorkspace()
 const { names: tagSuggestions } = useTags()
 
 const title = ref(props.snippet?.title ?? '')
@@ -31,10 +33,28 @@ const notes = ref(props.snippet?.notes ?? '')
 const projectId = ref<number | null>(props.snippet?.project_id ?? null)
 const collectionId = ref<number | null>(props.snippet?.collection_id ?? null)
 
+const selectedProjectName = computed(() => {
+  if (projectId.value === null) return 'none'
+  const p = props.projects?.find(x => x.id === projectId.value)
+  return p ? p.name : 'none'
+})
+
+const selectedProjectColor = computed(() => {
+  if (projectId.value === null) return 'transparent'
+  const p = props.projects?.find(x => x.id === projectId.value)
+  return p ? p.color : 'transparent'
+})
+
+const selectedCollectionName = computed(() => {
+  if (collectionId.value === null) return 'none'
+  const c = props.collections?.find(x => x.id === collectionId.value)
+  return c ? c.name : 'none'
+})
+
 function submit() {
   emit('submit', {
     title: title.value,
-    language: language.value,
+    language: language.value || 'txt',
     code: code.value,
     tags: tags.value,
     notes: notes.value,
@@ -42,64 +62,170 @@ function submit() {
     collection_id: collectionId.value,
   })
 }
+
+const workspaceLabel = computed(() =>
+  (currentWorkspace?.value?.name ?? 'Workspace').slice(0, 3).toUpperCase()
+)
 </script>
 
 <template>
-  <form class="flex flex-col gap-5" @submit.prevent="submit">
-    <div class="flex gap-4">
-      <label class="flex flex-1 flex-col gap-1.5">
-        <span class="field-label">Title</span>
-        <input v-model="title" type="text" required maxlength="200" placeholder="Snippet title…" class="field-input">
-      </label>
-      <label class="flex w-40 flex-col gap-1.5">
-        <span class="field-label">Language</span>
-        <input v-model="language" type="text" required maxlength="50" spellcheck="false" autocapitalize="off" placeholder="typescript" class="field-input">
-      </label>
+  <form class="flex flex-col" @submit.prevent="submit">
+    <!-- ── Linear-style breadcrumb header ── -->
+    <div class="flex shrink-0 items-center justify-between border-b border-line px-5 py-3">
+      <div class="flex items-center gap-2 text-[0.8125rem]">
+        <span
+          class="inline-grid size-5 shrink-0 place-items-center rounded bg-accent text-[10px] font-bold text-accent-fg"
+        >
+          {{ workspaceLabel }}
+        </span>
+        <span class="text-ink-muted">{{ currentWorkspace?.name ?? 'Workspace' }}</span>
+        <UiIcon name="chevron" :size="13" class="text-ink-subtle" />
+        <span class="font-medium text-ink">{{ snippet ? 'Edit snippet' : 'New snippet' }}</span>
+      </div>
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Close"
+        @click="emit('cancel')"
+      >
+        <UiIcon name="x" :size="16" />
+      </button>
     </div>
 
-    <label class="flex flex-col gap-1.5">
-      <span class="field-label">Code</span>
-      <textarea
-        v-model="code"
-        rows="10"
-        required
-        spellcheck="false"
-        placeholder="Paste your code…"
-        class="field-input resize-none rounded-lg bg-surface-2 font-mono text-xs leading-relaxed"
-      />
-    </label>
+    <!-- ── Body ── -->
+    <div class="flex-1 overflow-y-auto overscroll-contain">
+      <div class="px-6 pt-6 pb-2 space-y-4">
+        <!-- Title & Language Inline -->
+        <div class="flex items-start gap-4">
+          <input
+            v-model="title"
+            type="text"
+            required
+            maxlength="200"
+            placeholder="Snippet title"
+            class="flex-1 bg-transparent text-[1.25rem] font-semibold tracking-tight text-ink placeholder:text-ink-subtle outline-none"
+            autofocus
+          />
+          <input
+            v-model="language"
+            type="text"
+            required
+            maxlength="50"
+            spellcheck="false"
+            autocapitalize="off"
+            placeholder="language (e.g. typescript)"
+            class="w-48 bg-transparent text-right text-sm text-ink-muted placeholder:text-ink-subtle outline-none border-b border-transparent focus:border-line pb-1 mt-1 font-mono"
+          />
+        </div>
 
-    <div class="flex flex-col gap-1.5">
-      <span class="field-label">Tags</span>
-      <TagInput v-model="tags" :suggestions="tagSuggestions" aria-label="Tags" />
+        <!-- Code Block Textarea -->
+        <div class="relative rounded-lg border border-line overflow-hidden">
+          <div class="flex items-center justify-between bg-surface-2 px-3 py-1.5 border-b border-line text-[11px] text-ink-subtle font-mono uppercase">
+            <span>Editor</span>
+            <span>{{ language || 'plain text' }}</span>
+          </div>
+          <textarea
+            v-model="code"
+            rows="10"
+            required
+            spellcheck="false"
+            placeholder="Paste or write your code here…"
+            class="w-full block bg-surface-2 p-3 font-mono text-xs leading-relaxed text-ink placeholder:text-ink-subtle outline-none resize-none"
+          />
+        </div>
+
+        <!-- Notes (context info) -->
+        <div class="space-y-1.5">
+          <span class="field-label block uppercase tracking-wider text-[10px] font-semibold">Notes</span>
+          <textarea
+            v-model="notes"
+            rows="2"
+            placeholder="Add optional description, notes, or usage instructions…"
+            class="w-full bg-transparent text-sm leading-relaxed text-ink placeholder:text-ink-subtle outline-none resize-none"
+          />
+        </div>
+
+        <!-- Tags section -->
+        <div class="space-y-1.5">
+          <span class="field-label block uppercase tracking-wider text-[10px] font-semibold">Tags</span>
+          <TagInput v-model="tags" :suggestions="tagSuggestions" aria-label="Tags" />
+        </div>
+
+        <!-- Metadata chips row (Project & Collection selectors) -->
+        <div class="flex flex-wrap items-center gap-2 pt-4 pb-2 border-t border-line mt-4">
+          <!-- Project selector pill -->
+          <UiMenu v-if="(projects ?? []).length" align="left">
+            <template #trigger>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
+              >
+                <span
+                  v-if="projectId !== null"
+                  class="size-1.5 rounded-full"
+                  :style="{ backgroundColor: selectedProjectColor }"
+                />
+                <UiIcon v-else name="folder" :size="11" />
+                <span>Project: {{ selectedProjectName }}</span>
+              </button>
+            </template>
+            <UiMenuItem
+              @click="projectId = null"
+            >
+              <span class="text-xs font-medium text-ink">— none —</span>
+            </UiMenuItem>
+            <UiMenuItem
+              v-for="p in projects"
+              :key="p.id"
+              @click="projectId = p.id"
+            >
+              <div class="flex items-center gap-2">
+                <span class="size-1.5 rounded-full" :style="{ backgroundColor: p.color }" />
+                <span class="text-xs font-medium text-ink">{{ p.name }}</span>
+              </div>
+            </UiMenuItem>
+          </UiMenu>
+
+          <!-- Collection selector pill -->
+          <UiMenu v-if="(collections ?? []).length" align="left">
+            <template #trigger>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
+              >
+                <UiIcon name="layers" :size="11" />
+                <span>Collection: {{ selectedCollectionName }}</span>
+              </button>
+            </template>
+            <UiMenuItem
+              @click="collectionId = null"
+            >
+              <span class="text-xs font-medium text-ink">— none —</span>
+            </UiMenuItem>
+            <UiMenuItem
+              v-for="c in collections"
+              :key="c.id"
+              @click="collectionId = c.id"
+            >
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-medium text-ink">{{ c.name }}</span>
+              </div>
+            </UiMenuItem>
+          </UiMenu>
+        </div>
+      </div>
     </div>
 
-    <div class="flex gap-4">
-      <label class="flex flex-1 flex-col gap-1.5">
-        <span class="field-label">Project</span>
-        <select v-model="projectId" class="field-input">
-          <option :value="null">— none —</option>
-          <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
-      </label>
-      <label class="flex flex-1 flex-col gap-1.5">
-        <span class="field-label">Collection</span>
-        <select v-model="collectionId" class="field-input">
-          <option :value="null">— none —</option>
-          <option v-for="c in collections ?? []" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-      </label>
-    </div>
-
-    <label class="flex flex-col gap-1.5">
-      <span class="field-label">Notes</span>
-      <textarea v-model="notes" rows="2" placeholder="Optional context" class="field-input resize-none" />
-    </label>
-
-    <div class="flex justify-end gap-2 pt-4">
+    <!-- ── Footer ── -->
+    <div class="flex shrink-0 items-center justify-end gap-2 border-t border-line px-5 py-3.5">
       <UiButton variant="ghost" type="button" @click="emit('cancel')">Cancel</UiButton>
-      <UiButton variant="primary" type="submit" :loading="busy" icon="check">
-        {{ props.snippet ? 'Save changes' : 'Create snippet' }}
+      <UiButton
+        variant="primary"
+        type="submit"
+        :loading="busy"
+        :disabled="!title.trim() || !code.trim()"
+      >
+        {{ snippet ? 'Save changes' : 'Create snippet' }}
       </UiButton>
     </div>
   </form>

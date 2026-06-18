@@ -14,6 +14,10 @@ const queryClient = useQueryClient()
 const { confirm } = useConfirm()
 const { success, error } = useToast()
 
+function formatTaskId(id: number) {
+  return `TASK-${String(id).padStart(3, '0')}`
+}
+
 const { data: project } = useQuery({
   queryKey: computed(() => ['project', projectId.value]),
   queryFn: () => api<Project>(`/api/v1/projects/${projectId.value}`),
@@ -257,23 +261,20 @@ async function confirmDelete(t: Task) {
       <section
         v-for="col in statusColumns"
         :key="col.key"
-        class="flex flex-col rounded-xl border border-line bg-surface-2/60 p-3"
+        class="flex flex-col rounded-xl border border-line bg-surface-2/40 p-3"
       >
-        <h2
-          :class="['mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-ink', col.bar]"
-        >
-          <span :class="['size-2.5 rounded-full', col.dot]" />
-          {{ col.label }}
-          <span class="ml-auto rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-ink-muted shadow-sm">
-            {{ columns[col.key].length }}
-          </span>
-        </h2>
+        <!-- Column Header -->
+        <div class="mb-3 flex items-center gap-2 px-1.5 py-1 select-none">
+          <span :class="['size-2 rounded-full', col.dot]" />
+          <span class="text-sm font-semibold text-ink">{{ col.label }}</span>
+          <span class="text-xs text-ink-subtle font-normal tabular">({{ columns[col.key].length }})</span>
+        </div>
 
         <draggable
           :list="columns[col.key]"
           item-key="id"
           group="tasks"
-          class="flex min-h-2 flex-1 flex-col gap-2"
+          class="flex min-h-[160px] flex-1 flex-col gap-2"
           ghost-class="opacity-40"
           drag-class="rotate-2"
           animation="180"
@@ -288,12 +289,15 @@ async function confirmDelete(t: Task) {
           </template>
         </draggable>
 
-        <p
+        <!-- Empty State Column Placeholder -->
+        <div
           v-if="!columns[col.key].length"
-          class="rounded-lg border border-dashed border-line py-6 text-center text-xs text-ink-subtle"
+          class="flex flex-col items-center justify-center border border-dashed border-line rounded-lg py-8 px-4 text-center select-none bg-surface/20 my-2"
         >
-          Drop tasks here
-        </p>
+          <UiIcon name="inbox" :size="14" class="text-ink-subtle mb-1" />
+          <p class="text-xs font-semibold text-ink-muted">No tasks yet</p>
+          <p class="text-[10px] text-ink-subtle mt-0.5">Drag tasks here or add below</p>
+        </div>
 
         <!-- inline quick-add -->
         <div class="mt-2">
@@ -332,7 +336,10 @@ async function confirmDelete(t: Task) {
             <UiIcon name="flag" :size="11" />
             {{ task.priority }}
           </UiBadge>
-          <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ task.title }}</span>
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="font-mono text-xs text-ink-subtle shrink-0 select-all">{{ formatTaskId(task.id) }}</span>
+            <span class="truncate text-sm font-medium text-ink">{{ task.title }}</span>
+          </div>
           <span
             v-if="task.due_date"
             class="hidden items-center gap-1 text-xs text-ink-subtle sm:inline-flex"
@@ -352,8 +359,8 @@ async function confirmDelete(t: Task) {
 
     <UiModal
       :open="showForm"
-      :title="editing ? 'Edit task' : 'New task'"
-      :subtitle="editing ? 'Update task details.' : 'Add a task to this board.'"
+      no-header
+      width="max-w-2xl"
       @close="closeForm"
     >
       <TaskForm

@@ -20,7 +20,7 @@ function colorOf(tag: string): string {
 
 <template>
   <article
-    class="group flex flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition-all duration-200 hover:border-line-strong hover:shadow-card-hover"
+    class="group flex flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition-all duration-200 ease-[var(--ease-out-soft)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
   >
     <header class="flex items-center gap-2">
       <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">

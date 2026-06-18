@@ -25,7 +25,7 @@ function cldOptimize(url: string) {
 
 <template>
   <article
-    class="group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-card border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
+    class="group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-card border border-line bg-surface shadow-card transition-all duration-200 ease-[var(--ease-out-soft)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
     @click="$emit('open')"
   >
     <!-- Cover image or accent bar -->

@@ -356,9 +356,8 @@ async function confirmDelete(s: Snippet) {
 
     <UiModal
       :open="showForm"
+      no-header
       width="max-w-2xl"
-      :title="editing ? 'Edit snippet' : 'New snippet'"
-      :subtitle="editing ? 'Update your saved code.' : 'Save a reusable piece of code.'"
       @close="closeForm"
     >
       <SnippetForm
@@ -375,18 +374,36 @@ async function confirmDelete(s: Snippet) {
 
     <UiModal
       :open="showSaveView"
-      title="Save view"
-      subtitle="Name the current filters for quick reuse."
+      no-header
+      width="max-w-md"
       @close="showSaveView = false"
     >
-      <form class="flex flex-col gap-4" @submit.prevent="saveCurrentView">
-        <label class="flex flex-col gap-1.5">
-          <span class="field-label">View name</span>
-          <input v-model="viewName" type="text" required maxlength="120" placeholder="e.g. Python · infra" class="field-input">
-        </label>
-        <div class="flex justify-end gap-2 pt-2">
+      <form class="flex flex-col" @submit.prevent="saveCurrentView">
+        <!-- Breadcrumb / Header -->
+        <div class="flex shrink-0 items-center justify-between border-b border-line px-5 py-3">
+          <div class="flex items-center gap-2 text-[0.8125rem]">
+            <span class="font-medium text-ink">Save view</span>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Close"
+            @click="showSaveView = false"
+          >
+            <UiIcon name="x" :size="16" />
+          </button>
+        </div>
+        <div class="p-5">
+          <label class="flex flex-col gap-1.5">
+            <span class="field-label">View name</span>
+            <input v-model="viewName" type="text" required maxlength="120" placeholder="e.g. Python · infra" class="field-input">
+          </label>
+        </div>
+        <div class="flex shrink-0 items-center justify-end gap-2 border-t border-line px-5 py-3.5">
           <UiButton variant="ghost" type="button" @click="showSaveView = false">Cancel</UiButton>
-          <UiButton variant="primary" type="submit" :loading="savingView" :disabled="!viewName.trim()">Save view</UiButton>
+          <UiButton variant="primary" type="submit" :loading="savingView" :disabled="!viewName.trim()">
+            Save view
+          </UiButton>
         </div>
       </form>
     </UiModal>

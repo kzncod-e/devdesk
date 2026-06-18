@@ -220,6 +220,51 @@
     @apply cursor-not-allowed opacity-60;
   }
 
+  /* Custom styled select dropdowns to remove default browser arrows */
+  select.field-input,
+  select.rounded-control,
+  select[class*="field-input"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236f737d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.625rem center !important;
+    background-size: 0.875rem !important;
+    padding-right: 2rem !important;
+  }
+
+  /* Premium date picker input styling */
+  input[type="date"] {
+    position: relative;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* Hide native Webkit calendar pickers but allow clicks */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent !important;
+    bottom: 0;
+    color: transparent !important;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    z-index: 10;
+  }
+  
+  /* Remove default WebKit date margins/paddings */
+  input[type="date"]::-webkit-datetime-edit {
+    padding: 0;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
   /* Card action button (native <button> so it stays accessible in isolated tests) */
   .icon-btn {
     @apply inline-grid size-7 place-items-center rounded-control text-ink-muted transition

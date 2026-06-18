@@ -151,8 +151,8 @@ async function confirmDelete(b: Bookmark) {
 
     <UiModal
       :open="showForm"
-      :title="editing ? 'Edit bookmark' : 'New bookmark'"
-      :subtitle="editing ? 'Update tags and title.' : 'Save a link to revisit later.'"
+      no-header
+      width="max-w-2xl"
       @close="closeForm"
     >
       <BookmarkForm

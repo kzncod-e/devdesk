@@ -17,7 +17,7 @@ const host = computed(() => {
 
 <template>
   <article
-    class="group flex items-center gap-3.5 rounded-card border border-line bg-surface p-3.5 shadow-card transition-all duration-200 hover:border-line-strong hover:shadow-card-hover"
+    class="group flex items-center gap-3.5 rounded-card border border-line bg-surface p-3.5 shadow-card transition-all duration-200 ease-[var(--ease-out-soft)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
   >
     <div class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-surface-2">
       <img v-if="bookmark.favicon" :src="bookmark.favicon" alt="" class="size-5 rounded">
