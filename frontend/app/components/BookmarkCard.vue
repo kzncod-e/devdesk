@@ -29,7 +29,7 @@ const host = computed(() => {
         :href="bookmark.url"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition hover:text-accent"
+        class="inline-flex items-center gap-1.5 text-card-title transition hover:text-accent"
       >
         <span class="truncate">{{ bookmark.title || bookmark.url.replace(/^https?:\/\//, '') }}</span>
         <UiIcon name="external" :size="13" class="shrink-0 text-ink-subtle" />

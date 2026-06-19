@@ -26,12 +26,6 @@ const selectedProjectName = computed(() => {
   return p ? p.name : 'none'
 })
 
-const selectedProjectColor = computed(() => {
-  if (projectId.value === null) return 'transparent'
-  const p = props.projects?.find(x => x.id === projectId.value)
-  return p ? p.color : 'transparent'
-})
-
 function submit() {
   if (props.bookmark) {
     emit('submit', { title: title.value, tags: tags.value, project_id: projectId.value })
@@ -114,11 +108,7 @@ const workspaceLabel = computed(() =>
                 type="button"
                 class="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-2"
               >
-                <span
-                  v-if="projectId !== null"
-                  class="size-1.5 rounded-full"
-                  :style="{ backgroundColor: selectedProjectColor }"
-                />
+                <ProjectAvatar v-if="projectId !== null" :name="selectedProjectName" :size="15" />
                 <UiIcon v-else name="folder" :size="11" />
                 <span>Project: {{ selectedProjectName }}</span>
               </button>
@@ -134,7 +124,7 @@ const workspaceLabel = computed(() =>
               @click="projectId = p.id"
             >
               <div class="flex items-center gap-2">
-                <span class="size-1.5 rounded-full" :style="{ backgroundColor: p.color }" />
+                <ProjectAvatar :name="p.name" :size="16" />
                 <span class="text-xs font-medium text-ink">{{ p.name }}</span>
               </div>
             </UiMenuItem>

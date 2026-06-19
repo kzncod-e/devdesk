@@ -95,7 +95,7 @@ async function confirmDelete(b: Bookmark) {
   <div class="mx-auto max-w-4xl px-5 py-8 md:px-8">
     <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight text-ink">Bookmarks</h1>
+        <h1 class="text-title">Bookmarks</h1>
         <p class="mt-1 text-sm text-ink-muted">Links worth keeping.</p>
       </div>
       <UiButton variant="primary" icon="plus" @click="openCreate">New bookmark</UiButton>

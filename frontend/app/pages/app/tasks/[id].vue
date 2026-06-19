@@ -163,8 +163,8 @@ const priorityTone: Record<TaskPriority, 'gray' | 'amber' | 'red'> = {
 }
 
 const statusOptions: { key: TaskStatus; label: string; dot: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-blue-500' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-indigo-500' },
+  { key: 'todo', label: 'To do', dot: 'bg-zinc-500' },
+  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500' },
   { key: 'done', label: 'Done', dot: 'bg-emerald-500' },
 ]
 
@@ -274,11 +274,8 @@ const isSaving = computed(() => patchTask.isPending.value || updateAssignees.isP
             <!-- Project Display -->
             <div class="flex items-center justify-between py-2.5">
               <span class="field-label text-xs uppercase tracking-wider">Project</span>
-              <span v-if="project" class="inline-flex items-center gap-1.5 font-medium text-ink">
-                <span
-                  class="size-2 shrink-0 rounded-full"
-                  :style="{ backgroundColor: project.color }"
-                />
+              <span v-if="project" class="inline-flex items-center gap-2 font-medium text-ink">
+                <ProjectAvatar :name="project.name" :size="18" />
                 {{ project.name }}
               </span>
               <span v-else class="text-ink-subtle">—</span>

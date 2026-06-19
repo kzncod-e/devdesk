@@ -14,8 +14,8 @@
     "Times New Roman", serif;
 
   /* Radius scale — intentional, restrained (avoid excessive rounding).
-     controls 7px · cards/menus 10px · modal 12px. */
-  --radius-control: 0.4375rem;
+     controls 8px · cards/menus 10px · modal 12px. */
+  --radius-control: 0.5rem;
   --radius-card: 0.625rem;
   --radius-modal: 0.75rem;
 
@@ -29,30 +29,32 @@
 
 @layer base {
   :root {
-    --canvas: #f7f8f8;
+    /* Monochrome neutral (zinc) — color is reserved for status only. */
+    --canvas: #fafafa;
     --surface: #ffffff;
-    --surface-2: #f1f2f4;
-    --surface-3: #e5e7eb;
-    --line: #eeeef0;
-    --line-strong: #e2e2e5;
+    --surface-2: #f4f4f5;
+    --surface-3: #e4e4e7;
+    --line: #e4e4e7;
+    --line-strong: #d4d4d8;
 
-    --ink: #111113;
-    --ink-muted: #6f737d;
-    --ink-subtle: #8e939e;
+    --ink: #09090b;
+    --ink-muted: #71717a;
+    --ink-subtle: #a1a1aa;
 
-    /* Linear-family indigo. White foreground in both themes. */
-    --accent: #5e6ad2;
-    --accent-hover: #515cc0;
+    /* Monochrome "accent" = ink itself. Primary action is a black fill with
+       white text (Vercel-style); soft/ring are neutral opacity layers. */
+    --accent: #18181b;
+    --accent-hover: #000000;
     --accent-fg: #ffffff;
-    --accent-soft: rgba(94, 106, 210, 0.08);
-    --accent-ring: rgba(94, 106, 210, 0.2);
+    --accent-soft: rgba(0, 0, 0, 0.05);
+    --accent-ring: rgba(0, 0, 0, 0.18);
 
-    --success: #16a34a;
-    --success-soft: rgba(22, 163, 74, 0.08);
-    --danger: #dc2f33;
-    --danger-soft: rgba(220, 47, 51, 0.08);
-    --warning: #d97706;
-    --warning-soft: rgba(217, 119, 6, 0.08);
+    --success: #30a46c;
+    --success-soft: rgba(48, 164, 108, 0.08);
+    --danger: #e5484d;
+    --danger-soft: rgba(229, 72, 77, 0.08);
+    --warning: #e6a700;
+    --warning-soft: rgba(230, 167, 0, 0.08);
 
     --shadow-color: 220 20% 10%;
     --shadow-card: 0 1px 2px hsl(var(--shadow-color) / 0.02);
@@ -62,30 +64,33 @@
   }
 
   .dark {
-    /* Linear-exact dark neutral layering */
+    /* Monochrome dark — flat neutral near-black, surfaces lift barely,
+       borders are white-opacity layers, color reserved for status only. */
     --canvas: #09090b;
-    --surface: #121214;
+    --surface: #111113;
     --surface-2: #18181b;
-    --surface-3: #222226;
-    --line: #1f1f23;
-    --line-strong: #2d2d34;
+    --surface-3: #27272a;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.14);
 
-    --ink: #f7f8f8;
-    --ink-muted: #b4b9c2;
-    --ink-subtle: #6f737d;
+    --ink: #fafafa;
+    --ink-muted: #a1a1aa;
+    --ink-subtle: #71717a;
 
-    --accent: #5e6ad2;
-    --accent-hover: #6e7be2;
-    --accent-fg: #ffffff;
-    --accent-soft: rgba(94, 106, 210, 0.12);
-    --accent-ring: rgba(94, 106, 210, 0.35);
+    /* Monochrome "accent" = ink itself. Primary action is a white fill with
+       near-black text (Vercel-style); soft/ring are neutral opacity layers. */
+    --accent: #fafafa;
+    --accent-hover: #e4e4e7;
+    --accent-fg: #09090b;
+    --accent-soft: rgba(255, 255, 255, 0.08);
+    --accent-ring: rgba(255, 255, 255, 0.22);
 
-    --success: #16a34a;
-    --success-soft: rgba(22, 163, 74, 0.12);
-    --danger: #dc2f33;
-    --danger-soft: rgba(220, 47, 51, 0.12);
-    --warning: #d97706;
-    --warning-soft: rgba(217, 119, 6, 0.12);
+    --success: #30a46c;
+    --success-soft: rgba(48, 164, 108, 0.14);
+    --danger: #e5484d;
+    --danger-soft: rgba(229, 72, 77, 0.14);
+    --warning: #e6a700;
+    --warning-soft: rgba(230, 167, 0, 0.14);
 
     --shadow-color: 0 0% 0%;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -131,6 +136,9 @@
   html {
     -webkit-text-size-adjust: 100%;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Scale the whole rem-based system down to Linear-grade density.
+       15px root → body text ~13px, denser spacing, smaller titles. */
+    font-size: 15px;
   }
 
   body {
@@ -150,8 +158,8 @@
   }
 
   ::selection {
-    background-color: var(--accent-soft);
-    color: var(--accent);
+    background-color: var(--surface-3);
+    color: var(--ink);
   }
 
   :focus-visible {
@@ -185,15 +193,26 @@
   /* ── Typography scale ──────────────────────────────────────────────────────
      Intentional hierarchy: title › heading › label › meta › helper. Prefer these
      over ad-hoc text-2xl/font-semibold so every screen reads from one system. */
+  /* Page title — one per page. 24/600, tight optical tracking. */
   .text-title {
-    @apply text-[1.3125rem] font-semibold leading-7 tracking-[-0.02em] text-ink;
+    @apply text-2xl font-semibold leading-8 tracking-[-0.021em] text-ink;
   }
+  /* Section & modal titles. 18/600. */
   .text-heading {
-    @apply text-[0.9375rem] font-semibold leading-snug tracking-[-0.01em] text-ink;
+    @apply text-lg font-semibold leading-7 tracking-[-0.017em] text-ink;
+  }
+  /* Card titles. 14/500 — lean on weight restraint, not size. */
+  .text-card-title {
+    @apply text-sm font-medium leading-snug tracking-[-0.006em] text-ink;
   }
   .text-eyebrow {
     @apply text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-ink-subtle;
   }
+  /* Secondary text — 13/400. */
+  .text-secondary {
+    @apply text-[0.8125rem] leading-5 text-ink-muted;
+  }
+  /* Caption / metadata — 12/400. */
   .text-meta {
     @apply text-xs leading-5 text-ink-subtle;
   }

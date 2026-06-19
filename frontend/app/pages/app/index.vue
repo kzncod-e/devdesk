@@ -159,7 +159,7 @@ async function confirmDelete(p: Project) {
       <div class="min-w-0 flex-1">
         <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-ink">Projects</h1>
+            <h1 class="text-title">Projects</h1>
             <p class="mt-1 text-sm text-ink-muted">Organize your work into boards.</p>
           </div>
           <UiButton variant="primary" icon="plus" @click="openCreate">New project</UiButton>

@@ -15,6 +15,8 @@ interface Item {
   label: string
   hint?: string
   icon: string
+  /** When set, render a project monogram avatar instead of the icon tile. */
+  avatar?: string
   keywords?: string
   action: () => void
 }
@@ -99,7 +101,7 @@ function matchesAction(a: Item, term: string): boolean {
 function resultGroups(r: SearchOut): { label: string; items: Item[] }[] {
   const out: { label: string; items: Item[] }[] = []
   if (r.projects.length) {
-    out.push({ label: 'Projects', items: r.projects.map((p) => ({ key: `p-${p.id}`, label: p.name, hint: p.description, icon: 'folder', action: () => openResult(`/app/projects/${p.id}`) })) })
+    out.push({ label: 'Projects', items: r.projects.map((p) => ({ key: `p-${p.id}`, label: p.name, hint: p.description, icon: 'folder', avatar: p.name, action: () => openResult(`/app/projects/${p.id}`) })) })
   }
   if (r.tasks.length) {
     out.push({ label: 'Tasks', items: r.tasks.map((t) => ({ key: `t-${t.id}`, label: t.title, hint: t.description, icon: 'check', action: () => openResult(`/app/projects/${t.project_id}`) })) })
@@ -218,7 +220,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            class="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-surface shadow-overlay"
+            class="w-full max-w-xl overflow-hidden rounded-modal border border-line bg-surface shadow-overlay"
           >
             <div class="flex items-center gap-3 border-b border-line px-4">
               <UiIcon name="search" :size="18" class="text-ink-subtle" />
@@ -267,7 +269,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
                   @mousemove="activeIndex = flat.findIndex(f => f.key === item.key)"
                   @click="item.action"
                 >
+                  <ProjectAvatar v-if="item.avatar" :name="item.avatar" :size="28" />
                   <span
+                    v-else
                     class="grid size-7 shrink-0 place-items-center rounded-md bg-surface-2 text-ink-muted"
                     :class="flat[activeIndex]?.key === item.key && 'text-accent'"
                   >

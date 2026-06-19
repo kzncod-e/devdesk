@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ProjectIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = ""
-    color: str = Field(default="#6366f1", pattern=r"^#[0-9a-fA-F]{6}$")
+    color: str = Field(default="#71717a", pattern=r"^#[0-9a-fA-F]{6}$")
     image_url: str | None = Field(default=None, max_length=500)
 
 

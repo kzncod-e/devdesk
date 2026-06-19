@@ -12,14 +12,14 @@ const { current: currentWorkspace } = useWorkspace()
 const name = ref(props.project?.name ?? '')
 const summary = ref('')  // short inline summary (not persisted separately, appended to description)
 const description = ref(props.project?.description ?? '')
-const color = ref(props.project?.color ?? '#6366f1')
+const color = ref(props.project?.color ?? '#71717a')
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(props.project?.image_url ?? null)
 
+// Monochrome-first: project markers are neutral grayscale, not brand colors.
 const swatches = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-  '#f97316', '#f59e0b', '#10b981', '#06b6d4',
-  '#3b82f6', '#64748b',
+  '#71717a', '#a1a1aa', '#52525b', '#d4d4d8',
+  '#3f3f46', '#737373', '#e4e4e7', '#18181b',
 ]
 const showColorPicker = ref(false)
 

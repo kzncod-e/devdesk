@@ -26,7 +26,7 @@ function colorOf(tag: string): string {
       <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
         <UiIcon name="code" :size="16" />
       </span>
-      <h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{{ snippet.title }}</h2>
+      <h2 class="min-w-0 flex-1 truncate text-card-title">{{ snippet.title }}</h2>
       <div
         class="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100"
       >

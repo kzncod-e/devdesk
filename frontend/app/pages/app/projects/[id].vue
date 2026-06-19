@@ -42,8 +42,8 @@ const { data: summary } = useQuery({
 })
 
 const statusColumns: { key: TaskStatus; label: string; dot: string; bar: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-blue-500', bar: 'bg-blue-500/10' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-indigo-500', bar: 'bg-indigo-500/10' },
+  { key: 'todo', label: 'To do', dot: 'bg-zinc-500', bar: 'bg-zinc-500/10' },
+  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500', bar: 'bg-amber-500/10' },
   { key: 'done', label: 'Done', dot: 'bg-emerald-500', bar: 'bg-emerald-500/10' },
 ]
 
@@ -197,13 +197,9 @@ async function confirmDelete(t: Task) {
 
     <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
       <div class="flex items-start gap-3">
-        <span
-          class="mt-1 size-3.5 shrink-0 rounded-full"
-          :style="{ backgroundColor: project?.color ?? '#6366f1' }"
-          aria-hidden="true"
-        />
+        <ProjectAvatar :name="project?.name" :size="28" class="mt-0.5" />
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ project?.name ?? '…' }}</h1>
+          <h1 class="text-title">{{ project?.name ?? '…' }}</h1>
           <p v-if="project?.description" class="mt-1 max-w-xl text-sm text-ink-muted">
             {{ project.description }}
           </p>
@@ -213,7 +209,7 @@ async function confirmDelete(t: Task) {
     </header>
 
     <!-- progress strip -->
-    <div v-if="summary" class="mb-7 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-surface p-4 shadow-card">
+    <div v-if="summary" class="mb-7 flex flex-wrap items-center gap-4 rounded-card border border-line bg-surface p-4 shadow-card">
       <div class="flex items-center gap-2">
         <UiBadge tone="indigo">{{ summary.tasks.total }} tasks</UiBadge>
         <UiBadge tone="green" dot>{{ summary.tasks.done }} done</UiBadge>
@@ -250,7 +246,7 @@ async function confirmDelete(t: Task) {
 
     <!-- loading skeleton (shared by both views) -->
     <div v-if="isPending" class="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <div v-for="i in 3" :key="i" class="space-y-2 rounded-xl bg-surface-2 p-3">
+      <div v-for="i in 3" :key="i" class="space-y-2 rounded-card bg-surface-2 p-3">
         <UiSkeleton class="mb-3 h-4 w-24" />
         <UiSkeleton v-for="j in 3" :key="j" class="h-16 w-full rounded-lg" />
       </div>
@@ -261,7 +257,7 @@ async function confirmDelete(t: Task) {
       <section
         v-for="col in statusColumns"
         :key="col.key"
-        class="flex flex-col rounded-xl border border-line bg-surface-2/40 p-3"
+        class="flex flex-col rounded-card border border-line bg-surface-2/40 p-3"
       >
         <!-- Column Header -->
         <div class="mb-3 flex items-center gap-2 px-1.5 py-1 select-none">
@@ -316,7 +312,7 @@ async function confirmDelete(t: Task) {
     </div>
 
     <!-- list view -->
-    <div v-else class="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+    <div v-else class="overflow-hidden rounded-card border border-line bg-surface shadow-card">
       <template v-for="col in statusColumns" :key="col.key">
         <div
           v-if="columns[col.key].length"

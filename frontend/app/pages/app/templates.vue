@@ -71,7 +71,7 @@ const tabs: { value: 'all' | TemplateKind; label: string }[] = [
   <div class="mx-auto max-w-6xl px-5 py-8 md:px-8">
     <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight text-ink">Templates</h1>
+        <h1 class="text-title">Templates</h1>
         <p class="mt-1 text-sm text-ink-muted">Reusable scaffolds for projects and snippets.</p>
       </div>
       <UiButton variant="ghost" icon="external" @click="navigateTo('/gallery')">Public gallery</UiButton>

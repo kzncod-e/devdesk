@@ -173,13 +173,13 @@ function auditSummary(row: AuditLog): string {
 <template>
   <div class="mx-auto max-w-3xl px-5 py-8 md:px-8">
     <header class="mb-8">
-      <h1 class="text-2xl font-semibold tracking-tight text-ink">Settings</h1>
+      <h1 class="text-title">Settings</h1>
       <p class="mt-1 text-sm text-ink-muted">Manage your profile and workspace.</p>
     </header>
 
     <!-- Profile section -->
-    <section class="mb-8 rounded-xl border border-line bg-surface p-6 shadow-card">
-      <h2 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink">
+    <section class="mb-8 rounded-card border border-line bg-surface p-6 shadow-card">
+      <h2 class="mb-4 flex items-center gap-2 text-heading">
         <span class="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent">
           <UiIcon name="user" :size="15" />
         </span>
@@ -207,8 +207,8 @@ function auditSummary(row: AuditLog): string {
     </section>
 
     <!-- Workspace members & invites -->
-    <section class="mb-8 rounded-xl border border-line bg-surface p-6 shadow-card">
-      <h2 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink">
+    <section class="mb-8 rounded-card border border-line bg-surface p-6 shadow-card">
+      <h2 class="mb-1 flex items-center gap-2 text-heading">
         <span class="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent">
           <UiIcon name="users" :size="15" />
         </span>
@@ -319,8 +319,8 @@ function auditSummary(row: AuditLog): string {
     </section>
 
     <!-- Audit log (workspace owner / admin only) -->
-    <section v-if="canViewAudit" class="mb-8 rounded-xl border border-line bg-surface p-6 shadow-card">
-      <h2 class="mb-1 flex items-center gap-2 text-base font-semibold text-ink">
+    <section v-if="canViewAudit" class="mb-8 rounded-card border border-line bg-surface p-6 shadow-card">
+      <h2 class="mb-1 flex items-center gap-2 text-heading">
         <span class="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent">
           <UiIcon name="list" :size="15" />
         </span>
@@ -358,31 +358,31 @@ function auditSummary(row: AuditLog): string {
       </p>
 
       <!-- table -->
-      <div v-else class="overflow-x-auto rounded-lg border border-line">
-        <table class="w-full text-xs">
+      <div v-else class="overflow-x-auto rounded-card border border-line">
+        <table class="w-full text-[0.8125rem]">
           <thead>
-            <tr class="border-b border-line bg-surface-2 text-left text-ink-muted">
-              <th class="px-3 py-2 font-medium">Action</th>
-              <th class="px-3 py-2 font-medium">Actor</th>
-              <th class="px-3 py-2 font-medium">Target</th>
-              <th class="px-3 py-2 font-medium">When</th>
+            <tr class="border-b border-line bg-surface-2 text-left">
+              <th class="px-3.5 py-2.5 text-eyebrow">Action</th>
+              <th class="px-3.5 py-2.5 text-eyebrow">Actor</th>
+              <th class="px-3.5 py-2.5 text-eyebrow">Target</th>
+              <th class="px-3.5 py-2.5 text-eyebrow">When</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-line">
             <tr
               v-for="row in auditRows"
               :key="row.id"
-              class="group hover:bg-surface-2"
+              class="transition-colors duration-150 hover:bg-surface-2"
             >
-              <td class="px-3 py-2 font-mono text-ink">{{ row.action }}</td>
-              <td class="px-3 py-2 text-ink-muted">{{ row.actor_name ?? '—' }}</td>
-              <td class="px-3 py-2 text-ink-muted">
+              <td class="px-3.5 py-2.5 font-mono text-ink">{{ row.action }}</td>
+              <td class="px-3.5 py-2.5 text-ink-muted">{{ row.actor_name ?? '—' }}</td>
+              <td class="px-3.5 py-2.5 text-ink-muted">
                 <span v-if="row.target_type">
                   {{ row.target_type }}<span v-if="row.target_id" class="ml-1 text-ink-subtle">#{{ row.target_id }}</span>
                 </span>
                 <span v-else class="text-ink-subtle">—</span>
               </td>
-              <td class="px-3 py-2 text-ink-subtle">{{ auditTimeAgo(row.created_at) }}</td>
+              <td class="px-3.5 py-2.5 text-ink-subtle tabular">{{ auditTimeAgo(row.created_at) }}</td>
             </tr>
           </tbody>
         </table>
@@ -394,8 +394,8 @@ function auditSummary(row: AuditLog): string {
     </section>
 
     <!-- User management (admin only) -->
-    <section v-if="isAdmin" class="rounded-xl border border-line bg-surface p-6 shadow-card">
-      <h2 class="mb-4 flex items-center gap-2 text-base font-semibold text-ink">
+    <section v-if="isAdmin" class="rounded-card border border-line bg-surface p-6 shadow-card">
+      <h2 class="mb-4 flex items-center gap-2 text-heading">
         <span class="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent">
           <UiIcon name="users" :size="15" />
         </span>
@@ -453,7 +453,7 @@ function auditSummary(row: AuditLog): string {
     </section>
 
     <!-- Non-admin role info -->
-    <section v-else class="rounded-xl border border-line bg-surface-2 p-6">
+    <section v-else class="rounded-card border border-line bg-surface-2 p-6">
       <div class="flex items-center gap-3 text-ink-muted">
         <span class="grid size-8 place-items-center rounded-lg bg-surface-3 text-ink-subtle">
           <UiIcon name="shield" :size="16" />

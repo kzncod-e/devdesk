@@ -228,9 +228,10 @@ const initials = computed(() =>
                 activeProjectId === p.id ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
               ]"
             >
-              <span
-                class="size-2 shrink-0 rounded-full ring-2 ring-surface transition-transform group-hover/proj:scale-110"
-                :style="{ backgroundColor: p.color }"
+              <ProjectAvatar
+                :name="p.name"
+                :size="18"
+                class="transition-transform group-hover/proj:scale-105"
               />
               <span class="truncate">{{ p.name }}</span>
             </NuxtLink>

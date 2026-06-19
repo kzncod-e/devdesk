@@ -36,15 +36,15 @@ onBeforeUnmount(() => {
           <div
             role="alertdialog"
             aria-modal="true"
-            class="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-overlay"
+            class="w-full max-w-sm rounded-modal border border-line bg-surface p-6 shadow-overlay"
           >
             <div
-              class="mb-4 grid size-11 place-items-center rounded-xl"
+              class="mb-4 grid size-11 place-items-center rounded-card"
               :class="state.danger ? 'bg-danger-soft text-danger' : 'bg-accent-soft text-accent'"
             >
               <UiIcon :name="state.danger ? 'trash' : 'sparkles'" :size="22" />
             </div>
-            <h2 class="text-base font-semibold text-ink">{{ state.title }}</h2>
+            <h2 class="text-heading">{{ state.title }}</h2>
             <p v-if="state.message" class="mt-1.5 text-sm text-ink-muted">{{ state.message }}</p>
             <div class="mt-6 flex justify-end gap-2">
               <UiButton variant="ghost" @click="settle(false)">

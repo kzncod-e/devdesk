@@ -49,15 +49,9 @@ function cldOptimize(url: string) {
 
     <div :class="['flex flex-col gap-4', project.image_url ? 'px-5 pb-5' : 'p-5 pt-4']">
       <header class="flex items-start gap-3">
-        <span
-          class="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg text-sm font-semibold"
-          :style="{ backgroundColor: `${project.color}1a`, color: project.color }"
-          aria-hidden="true"
-        >
-          <UiIcon name="folder" :size="18" />
-        </span>
+        <ProjectAvatar :name="project.name" :size="36" class="mt-0.5" />
         <div class="min-w-0 flex-1">
-          <h2 class="truncate text-[15px] font-semibold text-ink">{{ project.name }}</h2>
+          <h2 class="truncate text-card-title">{{ project.name }}</h2>
           <UiBadge :tone="isActive ? 'green' : 'gray'" dot class="mt-1">
             {{ project.status }}
           </UiBadge>
