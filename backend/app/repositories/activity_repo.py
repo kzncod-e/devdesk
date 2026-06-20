@@ -44,3 +44,28 @@ class ActivityRepository:
         stmt = stmt.order_by(Activity.id.desc()).limit(limit)
         res = await self.session.execute(stmt)
         return [_to_api(row) for row in res.all()]
+
+    async def list_for_entity(
+        self,
+        workspace_id: int,
+        entity_type: str,
+        entity_id: int,
+        *,
+        before_id: int | None = None,
+        limit: int = 30,
+    ) -> list[dict]:
+        """A single entity's timeline (e.g. one task) — created/updated/commented…"""
+        stmt = (
+            select(Activity, User.name.label("actor_name"))
+            .outerjoin(User, User.id == Activity.actor_id)
+            .where(
+                Activity.workspace_id == workspace_id,
+                Activity.entity_type == entity_type,
+                Activity.entity_id == entity_id,
+            )
+        )
+        if before_id is not None:
+            stmt = stmt.where(Activity.id < before_id)
+        stmt = stmt.order_by(Activity.id.desc()).limit(limit)
+        res = await self.session.execute(stmt)
+        return [_to_api(row) for row in res.all()]

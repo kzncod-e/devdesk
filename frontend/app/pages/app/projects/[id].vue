@@ -14,8 +14,12 @@ const queryClient = useQueryClient()
 const { confirm } = useConfirm()
 const { success, error } = useToast()
 
-function formatTaskId(id: number) {
-  return `TASK-${String(id).padStart(3, '0')}`
+// Side-panel: open task detail in a drawer without leaving the board.
+const openTaskId = ref<number | null>(null)
+function onTaskDeleted() {
+  openTaskId.value = null
+  queryClient.invalidateQueries({ queryKey: ['tasks', projectId.value] })
+  queryClient.invalidateQueries({ queryKey: ['summary', projectId.value] })
 }
 
 const { data: project } = useQuery({
@@ -279,6 +283,8 @@ async function confirmDelete(t: Task) {
           <template #item="{ element }">
             <TaskCard
               :task="element"
+              :project-key="project?.key"
+              @open="openTaskId = element.id"
               @edit="startEdit(element)"
               @delete="confirmDelete(element)"
             />
@@ -322,18 +328,19 @@ async function confirmDelete(t: Task) {
           {{ col.label }}
           <span class="text-ink-subtle">· {{ columns[col.key].length }}</span>
         </div>
-        <NuxtLink
+        <button
           v-for="task in columns[col.key]"
           :key="task.id"
-          :to="`/app/tasks/${task.id}`"
+          type="button"
           class="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-surface-2"
+          @click="openTaskId = task.id"
         >
           <UiBadge :tone="{ low: 'gray', medium: 'amber', high: 'red' }[task.priority]" class="shrink-0 capitalize">
             <UiIcon name="flag" :size="11" />
             {{ task.priority }}
           </UiBadge>
           <div class="flex items-center gap-2 min-w-0 flex-1">
-            <span class="font-mono text-xs text-ink-subtle shrink-0 select-all">{{ formatTaskId(task.id) }}</span>
+            <span class="font-mono text-xs text-ink-subtle shrink-0 select-all">{{ taskRef(project?.key, task.number, task.id) }}</span>
             <span class="truncate text-sm font-medium text-ink">{{ task.title }}</span>
           </div>
           <span
@@ -346,7 +353,7 @@ async function confirmDelete(t: Task) {
           <div v-if="task.assignees.length" class="flex shrink-0 items-center -space-x-1.5">
             <UiAvatar v-for="a in task.assignees.slice(0, 3)" :key="a.id" :user="a" :size="22" />
           </div>
-        </NuxtLink>
+        </button>
       </template>
       <p v-if="!tasks?.length" class="px-4 py-10 text-center text-sm text-ink-subtle">
         No tasks yet.
@@ -368,5 +375,21 @@ async function confirmDelete(t: Task) {
         @cancel="closeForm"
       />
     </UiModal>
+
+    <!-- Task detail side-panel -->
+    <UiDrawer
+      :open="openTaskId !== null"
+      width="max-w-2xl"
+      @close="openTaskId = null"
+    >
+      <TaskDetail
+        v-if="openTaskId !== null"
+        :key="openTaskId"
+        :task-id="openTaskId"
+        compact
+        @close="openTaskId = null"
+        @deleted="onTaskDeleted"
+      />
+    </UiDrawer>
   </div>
 </template>

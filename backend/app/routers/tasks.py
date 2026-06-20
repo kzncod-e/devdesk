@@ -1,16 +1,19 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_task_service, get_current_user
+from app.api.deps import get_session, get_task_service, get_current_user
 from app.api.tenancy import WorkspaceContext, require
 from app.core.policy import Perm
+from app.repositories.activity_repo import ActivityRepository
 from app.schemas.task import AssigneesIn, TaskIn, TaskOut, TaskPatch
 from app.services.task_service import TaskService
 
 router = APIRouter(prefix="/api/v1", tags=["tasks"])
 
 Service = Annotated[TaskService, Depends(get_task_service)]
+Session = Annotated[AsyncSession, Depends(get_session)]
 Reader = Annotated[WorkspaceContext, Depends(require(Perm.CONTENT_READ))]
 Writer = Annotated[WorkspaceContext, Depends(require(Perm.CONTENT_WRITE))]
 Deleter = Annotated[WorkspaceContext, Depends(require(Perm.CONTENT_DELETE))]
@@ -22,7 +25,13 @@ async def create_task(project_id: int, body: TaskIn, ctx: Writer, svc: Service):
     return await svc.create(workspace_id=ctx.workspace_id, project_id=project_id,
                             title=body.title, description=body.description,
                             priority=body.priority, due_date=body.due_date,
+                            parent_task_id=body.parent_task_id,
                             assignee_ids=body.assignee_ids)
+
+
+@router.get("/tasks/{task_id}/subtasks", response_model=list[TaskOut])
+async def list_subtasks(task_id: int, ctx: Reader, svc: Service):
+    return await svc.list_subtasks(task_id, ctx.workspace_id)
 
 
 @router.put("/tasks/{task_id}/assignees", response_model=TaskOut)
@@ -46,6 +55,21 @@ async def patch_task(task_id: int, body: TaskPatch, ctx: Writer, svc: Service):
 @router.get("/tasks/{task_id}", response_model=TaskOut)
 async def get_task(task_id: int, svc: Service, user=Depends(get_current_user)):
     return await svc.get_task_for_user(task_id, user.id)
+
+
+@router.get("/tasks/{task_id}/activity")
+async def task_activity(
+    task_id: int,
+    ctx: Reader,
+    session: Session,
+    before: int | None = Query(default=None),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    rows = await ActivityRepository(session).list_for_entity(
+        ctx.workspace_id, "task", task_id, before_id=before, limit=limit
+    )
+    next_cursor = rows[-1]["id"] if len(rows) == limit else None
+    return {"items": rows, "next_cursor": next_cursor}
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

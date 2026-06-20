@@ -45,6 +45,7 @@ export interface Project {
   id: number
   workspace_id: number
   name: string
+  key: string | null
   description: string
   status: ProjectStatus
   color: string
@@ -75,6 +76,8 @@ export interface Task {
   id: number
   project_id: number
   workspace_id: number
+  number: number | null
+  parent_task_id: number | null
   title: string
   description: string
   status: TaskStatus

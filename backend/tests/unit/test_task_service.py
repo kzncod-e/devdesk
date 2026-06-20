@@ -28,15 +28,22 @@ class FakeTaskRepo:
         self._next = 1
 
     async def create(self, *, project_id, workspace_id, title, position, description="",
-                     priority="medium", due_date=None, assignees=None):
+                     priority="medium", due_date=None, parent_task_id=None, assignees=None):
+        number = (await self.max_number(project_id) or 0) + 1
         t = type("T", (), {"id": self._next, "project_id": project_id,
                            "workspace_id": workspace_id, "title": title,
+                           "number": number, "parent_task_id": parent_task_id,
                            "description": description, "status": "todo",
                            "priority": priority, "position": position,
                            "due_date": due_date})()
         self.items[t.id] = t
         self._next += 1
         return t
+
+    async def max_number(self, project_id):
+        nums = [getattr(t, "number", 0) for t in self.items.values()
+                if t.project_id == project_id]
+        return max(nums) if nums else None
 
     async def list_for_project(self, project_id, *, limit, offset):
         mine = sorted((t for t in self.items.values() if t.project_id == project_id),

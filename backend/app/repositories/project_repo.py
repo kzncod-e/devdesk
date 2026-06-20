@@ -1,8 +1,21 @@
+import re
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
 from app.platform.search import rank, vector_match
+
+
+def make_project_key(name: str) -> str:
+    """A short identifier prefix from the name: initials for multi-word names,
+    first 4 letters for a single word (e.g. "Acme Platform" → "AP", "Acme" → "ACME")."""
+    words = re.findall(r"[A-Za-z0-9]+", name)
+    if not words:
+        return "PRJ"
+    if len(words) == 1:
+        return words[0][:4].upper()
+    return "".join(w[0] for w in words[:4]).upper()
 
 
 class ProjectRepository:
@@ -12,7 +25,7 @@ class ProjectRepository:
     async def create(self, *, workspace_id: int, owner_id: int, name: str,
                      description: str = "", color: str = "#6366f1") -> Project:
         project = Project(workspace_id=workspace_id, owner_id=owner_id, name=name,
-                          description=description, color=color)
+                          key=make_project_key(name), description=description, color=color)
         self.session.add(project)
         await self.session.flush()
         await self.session.refresh(project)

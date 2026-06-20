@@ -22,6 +22,7 @@ class ProjectOut(BaseModel):
     id: int
     workspace_id: int
     name: str
+    key: str | None = None
     description: str
     status: str
     color: str

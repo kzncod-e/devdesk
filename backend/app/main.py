@@ -9,7 +9,8 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.routers import (
     admin, auth, bookmarks, collections, comments, notifications, projects,
-    saved_filters, search, snippets, tags, tasks, templates, users, workspaces,
+    saved_filters, search, snippets, tags, tasks, templates, users, workflow_states,
+    workspaces,
 )
 import app.models.user  # noqa: F401
 import app.models.project  # noqa: F401
@@ -26,6 +27,7 @@ import app.models.collection  # noqa: F401
 import app.models.tag  # noqa: F401
 import app.models.saved_filter  # noqa: F401
 import app.models.comment  # noqa: F401
+import app.models.workflow_state  # noqa: F401
 import app.platform.handlers.activity  # noqa: F401  — registers all outbox handlers
 import app.platform.handlers.notifications  # noqa: F401
 import app.platform.handlers.comments  # noqa: F401
@@ -86,6 +88,7 @@ def create_app() -> FastAPI:
     app.include_router(tags.router)
     app.include_router(saved_filters.router)
     app.include_router(comments.router)
+    app.include_router(workflow_states.router)
 
     return app
 

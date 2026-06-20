@@ -17,6 +17,9 @@ class Project(Base):
         ForeignKey("workspaces.id"), index=True, nullable=True
     )
     name: Mapped[str] = mapped_column(String(200))
+    # Short identifier prefix (e.g. "ACME") → tasks render as ACME-12. Nullable +
+    # backfilled; generated from the name on create.
+    key: Mapped[str | None] = mapped_column(String(10), nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="active")  # active|archived
     color: Mapped[str] = mapped_column(String(7), default="#71717a")

@@ -5,17 +5,18 @@ import UiBadge from '~/components/UiBadge.vue'
 import UiAvatar from '~/components/UiAvatar.vue'
 import UiMenu from '~/components/UiMenu.vue'
 import UiMenuItem from '~/components/UiMenuItem.vue'
+import { taskRef } from '~/utils/taskRef'
 import type { Task, TaskPriority } from '~/types/api'
 
-const props = defineProps<{ task: Task }>()
-defineEmits<{ edit: []; delete: [] }>()
+const props = defineProps<{ task: Task; projectKey?: string | null }>()
+const emit = defineEmits<{ edit: []; delete: []; open: [] }>()
 
 function navigateToTask(e: MouseEvent) {
   const target = e.target as HTMLElement
   if (target.closest('button') || target.closest('a') || target.closest('[role="menu"]')) {
     return
   }
-  navigateTo(`/app/tasks/${props.task.id}`)
+  emit('open')
 }
 
 const priorityTone: Record<TaskPriority, 'gray' | 'amber' | 'red'> = {
@@ -32,9 +33,7 @@ const dueLabel = computed(() => {
   })
 })
 
-function formatTaskId(id: number) {
-  return `TASK-${String(id).padStart(3, '0')}`
-}
+const ref_ = computed(() => taskRef(props.projectKey, props.task.number, props.task.id))
 
 // Show at most 3 avatars; the rest collapse into a +N chip.
 const MAX_AVATARS = 3
@@ -61,7 +60,7 @@ const hasFooter = computed(
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-1.5">
         <span class="font-mono text-[10px] font-semibold tracking-wider text-ink-subtle">
-          {{ formatTaskId(task.id) }}
+          {{ ref_ }}
         </span>
         <span class="text-line-strong font-normal text-[10px] select-none">|</span>
         <UiBadge :tone="priorityTone[task.priority]" class="capitalize !py-0.5 !px-1.5 !text-[9px]">

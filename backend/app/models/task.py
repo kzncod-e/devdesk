@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Integer,
     String,
     Table,
     Text,
@@ -34,9 +35,22 @@ class Task(Base):
     workspace_id: Mapped[int | None] = mapped_column(
         ForeignKey("workspaces.id"), index=True, nullable=True
     )
+    # Per-project sequence (1-based) → rendered as KEY-number, e.g. ACME-12.
+    # Nullable so non-service insert paths can never hit a NOT NULL violation;
+    # task_repo.create always assigns it.
+    number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Sub-tasks: a task may nest under one parent (one level used in the UI).
+    parent_task_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="todo")  # todo|in_progress|done
+    # Board column (source of truth). `status` is kept as a denormalized projection
+    # of the state's category for status-based reporting; nullable for legacy rows.
+    state_id: Mapped[int | None] = mapped_column(
+        ForeignKey("workflow_states.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     priority: Mapped[str] = mapped_column(String(10), default="medium")  # low|medium|high
     position: Mapped[float] = mapped_column(Float)
     due_date: Mapped[date | None] = mapped_column(Date, default=None)

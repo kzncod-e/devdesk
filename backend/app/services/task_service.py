@@ -12,24 +12,49 @@ POSITION_STEP = 1024.0
 
 
 class TaskService:
-    def __init__(self, session: AsyncSession, task_repo, project_repo, user_repo) -> None:
+    def __init__(self, session: AsyncSession, task_repo, project_repo, user_repo,
+                 state_repo=None) -> None:
         self.session = session
         self.task_repo = task_repo
         self.project_repo = project_repo
         self.user_repo = user_repo
+        self.state_repo = state_repo
 
     async def create(self, *, workspace_id: int, project_id: int, title: str,
                      description: str = "", priority: str = "medium",
-                     due_date: date | None = None,
+                     due_date: date | None = None, parent_task_id: int | None = None,
+                     state_id: int | None = None,
                      assignee_ids: list[int] | None = None):
         await self._require_project(project_id, workspace_id)
-        max_pos = await self.task_repo.max_position(project_id, "todo")
+        if parent_task_id is not None:
+            parent = await self.task_repo.get_in_workspace(parent_task_id, workspace_id)
+            if parent is None or parent.project_id != project_id:
+                raise NotFoundError("Parent task not found")
+
+        # Resolve the target board column (state). `status` is the state's category.
+        status = "todo"
+        if self.state_repo is not None:
+            if state_id is not None:
+                state = await self.state_repo.get_in_project(state_id, project_id)
+                if state is None:
+                    raise NotFoundError("State not found")
+            else:
+                state = await self.state_repo.first_for_project(project_id)
+            if state is not None:
+                state_id = state.id
+                status = state.category
+
+        if state_id is not None:
+            max_pos = await self.task_repo.max_position_in_state(state_id)
+        else:
+            max_pos = await self.task_repo.max_position(project_id, "todo")
         position = (max_pos or 0.0) + POSITION_STEP
         assignees = await self.user_repo.get_by_ids(assignee_ids or [])
         task = await self.task_repo.create(
             project_id=project_id, workspace_id=workspace_id, title=title,
+            status=status, state_id=state_id,
             position=position, description=description, priority=priority,
-            due_date=due_date, assignees=assignees,
+            due_date=due_date, parent_task_id=parent_task_id, assignees=assignees,
         )
         await emit(
             self.session,
@@ -71,11 +96,27 @@ class TaskService:
         await self._require_project(project_id, workspace_id)
         return await self.task_repo.list_for_project(project_id, limit=limit, offset=offset)
 
+    async def list_subtasks(self, task_id: int, workspace_id: int):
+        await self._require_task(task_id, workspace_id)
+        return await self.task_repo.list_subtasks(task_id)
+
     async def update(self, task_id: int, workspace_id: int, **fields):
         task = await self._require_task(task_id, workspace_id)
+        # Keep state_id ⇄ status consistent (state_id is the source of truth).
+        if self.state_repo is not None:
+            if fields.get("state_id") is not None:
+                state = await self.state_repo.get_in_project(fields["state_id"], task.project_id)
+                if state is None:
+                    raise NotFoundError("State not found")
+                fields["status"] = state.category
+            elif fields.get("status") is not None:
+                state = await self.state_repo.find_by_category(task.project_id, fields["status"])
+                if state is not None:
+                    fields["state_id"] = state.id
         updated = await self.task_repo.update(task, **fields)
         payload: dict = {"id": task_id, **{k: v for k, v in fields.items() if v is not None}}
-        topic = "task.status_changed" if "status" in fields else "task.updated"
+        moved = "status" in fields or "state_id" in fields
+        topic = "task.status_changed" if moved else "task.updated"
         await emit(self.session, topic, payload, workspace_id=workspace_id)
         await self.session.commit()
         return updated

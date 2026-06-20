@@ -14,9 +14,15 @@ class TaskRepository:
 
     async def create(self, *, project_id: int, workspace_id: int, title: str,
                      position: float, description: str = "", priority: str = "medium",
-                     due_date: date | None = None,
+                     due_date: date | None = None, parent_task_id: int | None = None,
+                     status: str = "todo", state_id: int | None = None,
                      assignees: list[User] | None = None) -> Task:
+        # Per-project sequence number, assigned here so every create path
+        # (tasks, template instantiation) gets a stable KEY-N identifier.
+        next_number = (await self.max_number(project_id) or 0) + 1
         task = Task(project_id=project_id, workspace_id=workspace_id, title=title,
+                    number=next_number, parent_task_id=parent_task_id,
+                    status=status, state_id=state_id,
                     position=position, description=description, priority=priority,
                     due_date=due_date, assignees=assignees or [])
         self.session.add(task)
@@ -24,19 +30,36 @@ class TaskRepository:
         await self.session.refresh(task)
         return task
 
+    async def max_number(self, project_id: int) -> int | None:
+        stmt = select(func.max(Task.number)).where(Task.project_id == project_id)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def max_position_in_state(self, state_id: int) -> float | None:
+        stmt = select(func.max(Task.position)).where(Task.state_id == state_id)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def set_assignees(self, task: Task, users: list[User]) -> Task:
         task.assignees = users
         await self.session.commit()
         await self.session.refresh(task)
         return task
 
-    async def list_for_project(self, project_id: int, *, limit: int, offset: int) -> list[Task]:
+    async def list_for_project(self, project_id: int, *, limit: int, offset: int,
+                               top_level_only: bool = True) -> list[Task]:
+        stmt = select(Task).where(Task.project_id == project_id)
+        if top_level_only:
+            stmt = stmt.where(Task.parent_task_id.is_(None))
+        stmt = stmt.order_by(Task.position).limit(limit).offset(offset)
+        res = await self.session.execute(stmt)
+        return list(res.scalars().all())
+
+    async def list_subtasks(self, parent_task_id: int) -> list[Task]:
         stmt = (
             select(Task)
-            .where(Task.project_id == project_id)
-            .order_by(Task.position)
-            .limit(limit)
-            .offset(offset)
+            .where(Task.parent_task_id == parent_task_id)
+            .order_by(Task.position, Task.id)
         )
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
@@ -66,9 +89,10 @@ class TaskRepository:
         return res.scalar_one_or_none()
 
     async def count_by_status(self, project_id: int) -> dict[str, int]:
+        # Top-level only, so the summary matches the board (which hides sub-tasks).
         stmt = (
             select(Task.status, func.count())
-            .where(Task.project_id == project_id)
+            .where(Task.project_id == project_id, Task.parent_task_id.is_(None))
             .group_by(Task.status)
         )
         res = await self.session.execute(stmt)

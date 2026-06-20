@@ -9,12 +9,13 @@ from app.models.workspace import Membership
 
 class ProjectService:
     def __init__(self, session: AsyncSession, repo, task_repo=None,
-                 snippet_repo=None, bookmark_repo=None) -> None:
+                 snippet_repo=None, bookmark_repo=None, state_repo=None) -> None:
         self.session = session
         self.repo = repo
         self.task_repo = task_repo
         self.snippet_repo = snippet_repo
         self.bookmark_repo = bookmark_repo
+        self.state_repo = state_repo
 
     async def create(self, *, workspace_id: int, owner_id: int, name: str,
                      description: str = "", color: str = "#6366f1"):
@@ -22,6 +23,9 @@ class ProjectService:
             workspace_id=workspace_id, owner_id=owner_id,
             name=name, description=description, color=color,
         )
+        # Seed default board columns so the project has states from day one.
+        if self.state_repo is not None:
+            await self.state_repo.seed_defaults(project.id)
         await emit(self.session, "project.created",
                    {"id": project.id, "name": project.name, "owner_id": owner_id},
                    workspace_id=workspace_id)

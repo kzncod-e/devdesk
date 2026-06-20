@@ -17,6 +17,7 @@ from app.repositories.saved_filter_repo import SavedFilterRepository
 from app.repositories.tag_repo import TagRepository
 from app.repositories.task_repo import TaskRepository
 from app.repositories.template_repo import TemplateRepository
+from app.repositories.workflow_state_repo import WorkflowStateRepository
 from app.repositories.user_repo import UserRepository
 from app.repositories.workspace_repo import (
     InviteRepository,
@@ -33,6 +34,7 @@ from app.services.collection_service import CollectionService
 from app.services.saved_filter_service import SavedFilterService
 from app.services.tag_service import TagService
 from app.services.task_service import TaskService
+from app.services.workflow_state_service import WorkflowStateService
 from app.services.template_service import TemplateService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
@@ -73,12 +75,20 @@ def get_project_service(session: Session) -> ProjectService:
         task_repo=TaskRepository(session),
         snippet_repo=SnippetRepository(session),
         bookmark_repo=BookmarkRepository(session),
+        state_repo=WorkflowStateRepository(session),
     )
 
 
 def get_task_service(session: Session) -> TaskService:
     return TaskService(
-        session, TaskRepository(session), ProjectRepository(session), UserRepository(session)
+        session, TaskRepository(session), ProjectRepository(session), UserRepository(session),
+        state_repo=WorkflowStateRepository(session),
+    )
+
+
+def get_workflow_state_service(session: Session) -> WorkflowStateService:
+    return WorkflowStateService(
+        session, WorkflowStateRepository(session), ProjectRepository(session)
     )
 
 

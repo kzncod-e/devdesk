@@ -25,7 +25,9 @@
 | Templates + public gallery | ✅ shipped (2.6) |
 | Collections, tag registry, saved filters | ✅ shipped (2.7) |
 | Comments + @mentions | ✅ shipped (3.1) |
-| Task side-panel, workflows, teams, webhooks, sharing | ❌ not started (Phase 3) |
+| Task side-panel (drawer + Comments/Activity tabs) | ✅ shipped (3.2) |
+| Per-project task numbering (KEY-N) + sub-tasks | ✅ shipped (3.3 part 1) |
+| Custom workflow states, teams, version history, webhooks, sharing | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
 
 ---
@@ -219,18 +221,34 @@ Goal: turn shared workspaces into real collaboration. Depends on Phase 2's outbo
   `comment_count` not yet denormalised onto `TaskOut` for card chips; comments only on
   tasks so far (schema is generic).
 
-### 3.2 Entity side-panel (Linear-style)  ·  **M**
+### 3.2 Entity side-panel (Linear-style)  ·  **M**  ·  ✅ shipped
 - **Why:** detail-on-the-side beats modal hops; the `UiDrawer` already exists, unused.
-- **UI:** slide-in panel for task/snippet detail with inline edit + Comments /
-  Activity tabs. No schema change.
+- **UI:** ✅ extracted `TaskDetail.vue` (single source of truth) with a `compact` prop +
+  **Comments / Activity** tabs and inline edit of every property; both the task page
+  (`/app/tasks/[id]`) and a board `UiDrawer` render it. Board cards + list rows open the
+  drawer (`@open`) instead of navigating; "Open" deep-links to the full page.
+  `TaskActivity.vue` shows the per-task timeline.
+- **Backend:** ✅ `GET /tasks/{id}/activity` (+ `ActivityRepository.list_for_entity`) —
+  a single entity's timeline (created/updated/commented…), header-scoped `CONTENT_READ`.
+- **Tests:** ✅ `tests/api/test_task_activity_api.py` (shape + auth).
+- **Deferred:** snippet side-panel (tasks only so far); per-task activity is read-only.
 
-### 3.3 Custom workflow states + sub-tasks  ·  **M–L**
+### 3.3 Custom workflow states + sub-tasks  ·  **M–L**  ·  ◑ part 1 shipped
 - **Why:** hardcoded `todo|in_progress|done` doesn't survive real teams.
-- **DB:** `workflow_states(project_id, name, category, position)`; `tasks.status` →
-  FK to a state; `tasks.parent_task_id` for sub-tasks; `tasks.number` (per-project
-  sequence → `DEV-42`).
-- **API:** state CRUD; task create/patch accept `state_id`, `parent_task_id`.
-- **UI:** board columns driven by states; state editor; sub-task lists.
+- **Part 1 — task numbering + sub-tasks (✅ shipped):**
+  - **DB:** ✅ `projects.key`, `tasks.number` (per-project sequence), `tasks.parent_task_id`
+    (migration `d7e8f9a0b1c2`, backfills key from name + numbers per project). `number` is
+    assigned in `task_repo.create` so every path (incl. template instantiate) gets it.
+  - **API:** ✅ create accepts `parent_task_id`; `GET /tasks/{id}/subtasks`; `ProjectOut.key`
+    + `TaskOut.number`/`parent_task_id`. Board list (`list_for_project`) and project summary
+    exclude sub-tasks (top-level only).
+  - **UI:** ✅ real `KEY-N` identifiers everywhere (`utils/taskRef`), replacing the faked
+    `TASK-{id}`; `TaskSubtasks.vue` in the detail panel (add / complete / open, own numbers).
+  - **Tests:** ✅ `tests/api/test_task_numbering_api.py`.
+- **Part 2 — custom workflow states (❌ deferred, the risky piece):** `workflow_states(
+  project_id, name, category, position)`; `tasks.status` → FK to a state; state CRUD; board
+  columns driven by states + a state editor. Schema-invasive (status→FK migration + board
+  refactor) — warrants its own focused, verified pass.
 
 ### 3.4 Teams (sub-groups within a workspace)  ·  **M**
 - **DB:** `teams(workspace_id, name, key)`, `team_members(team_id, user_id, role)`;
