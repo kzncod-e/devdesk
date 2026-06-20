@@ -28,12 +28,14 @@ class FakeTaskRepo:
         self._next = 1
 
     async def create(self, *, project_id, workspace_id, title, position, description="",
-                     priority="medium", due_date=None, parent_task_id=None, assignees=None):
+                     priority="medium", due_date=None, parent_task_id=None,
+                     status="todo", state_id=None, assignees=None):
         number = (await self.max_number(project_id) or 0) + 1
         t = type("T", (), {"id": self._next, "project_id": project_id,
                            "workspace_id": workspace_id, "title": title,
                            "number": number, "parent_task_id": parent_task_id,
-                           "description": description, "status": "todo",
+                           "status": status, "state_id": state_id,
+                           "description": description,
                            "priority": priority, "position": position,
                            "due_date": due_date})()
         self.items[t.id] = t

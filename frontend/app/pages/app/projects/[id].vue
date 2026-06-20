@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import draggable from 'vuedraggable'
 
 import { computePosition } from '~/utils/position'
-import type { Project, ProjectSummary, Task, TaskStatus } from '~/types/api'
+import type { Project, ProjectSummary, Task, TaskStatus, WorkflowState } from '~/types/api'
 
 definePageMeta({ middleware: 'auth', layout: 'app' })
 
@@ -45,25 +45,40 @@ const { data: summary } = useQuery({
   enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value)),
 })
 
-const statusColumns: { key: TaskStatus; label: string; dot: string; bar: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-zinc-500', bar: 'bg-zinc-500/10' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500', bar: 'bg-amber-500/10' },
-  { key: 'done', label: 'Done', dot: 'bg-emerald-500', bar: 'bg-emerald-500/10' },
-]
+// Per-project board columns (custom workflow states).
+const { data: states } = useQuery({
+  queryKey: computed(() => ['states', projectId.value]),
+  queryFn: () => api<WorkflowState[]>(`/api/v1/projects/${projectId.value}/states`),
+  enabled: computed(() => route.path.startsWith('/app/projects/') && !isNaN(projectId.value)),
+})
 
-// local mutable copies for vuedraggable; rebuilt whenever the query refetches
-const columns = reactive<Record<TaskStatus, Task[]>>({ todo: [], in_progress: [], done: [] })
-watch(
-  tasks,
-  (list) => {
-    for (const col of statusColumns) {
-      columns[col.key] = (list ?? [])
-        .filter(t => t.status === col.key)
-        .sort((a, b) => a.position - b.position)
-    }
-  },
-  { immediate: true },
-)
+// Fallback dot colour by category when a state has no explicit colour.
+const categoryDot: Record<TaskStatus, string> = {
+  todo: 'bg-zinc-500', in_progress: 'bg-amber-500', done: 'bg-emerald-500',
+}
+function dotStyle(s: WorkflowState) {
+  return s.color ? { backgroundColor: s.color } : undefined
+}
+
+// local mutable copies for vuedraggable, keyed by state id; rebuilt on refetch
+const columns = reactive<Record<number, Task[]>>({})
+function rebuildColumns() {
+  const sts = states.value ?? []
+  const list = tasks.value ?? []
+  for (const k of Object.keys(columns)) delete columns[Number(k)]
+  if (!sts.length) return
+  const known = new Set(sts.map(s => s.id))
+  for (const s of sts) columns[s.id] = []
+  for (const t of list) {
+    // place by state_id; orphans fall into a same-category column, else the first
+    const target = (t.state_id && known.has(t.state_id))
+      ? t.state_id
+      : (sts.find(s => s.category === t.status) ?? sts[0]!).id
+    columns[target]!.push(t)
+  }
+  for (const s of sts) columns[s.id]!.sort((a, b) => a.position - b.position)
+}
+watch([tasks, states], rebuildColumns, { immediate: true })
 
 const progress = computed(() => {
   if (!summary.value || !summary.value.tasks.total) return 0
@@ -92,45 +107,83 @@ type DragChange = {
   moved?: { element: Task; newIndex: number }
 }
 
-function onColumnChange(status: TaskStatus, evt: DragChange) {
+function onColumnChange(stateId: number, evt: DragChange) {
   const change = evt.added ?? evt.moved
   if (!change) return
-  const column = columns[status]
+  const column = columns[stateId] ?? []
   const { element, newIndex } = change
   const position = computePosition(
     column[newIndex - 1]?.position,
     column[newIndex + 1]?.position,
   )
   element.position = position
-  element.status = status
-  patchTask.mutate({ id: element.id, body: { status, position } })
+  element.state_id = stateId
+  patchTask.mutate({ id: element.id, body: { state_id: stateId, position } })
 }
 
-// ── Inline quick-add (per column) ──────────────────────────────
-const drafts = reactive<Record<TaskStatus, string>>({ todo: '', in_progress: '', done: '' })
-const adding = ref<TaskStatus | null>(null)
+// ── Inline quick-add (per column, keyed by state id) ──────────────────────────
+const drafts = reactive<Record<number, string>>({})
+const adding = ref<number | null>(null)
 
-async function quickAdd(status: TaskStatus) {
-  const title = drafts[status].trim()
+async function quickAdd(stateId: number) {
+  const title = (drafts[stateId] ?? '').trim()
   if (!title) return
-  drafts[status] = ''
+  drafts[stateId] = ''
   try {
-    // tasks are created in `todo`; move to the target column if needed
-    const created = await api<Task>(`/api/v1/projects/${projectId.value}/tasks`, {
+    await api<Task>(`/api/v1/projects/${projectId.value}/tasks`, {
       method: 'POST',
-      body: { title },
+      body: { title, state_id: stateId },
     })
-    if (status !== 'todo') {
-      const last = columns[status][columns[status].length - 1]
-      const position = computePosition(last?.position, undefined)
-      await api<Task>(`/api/v1/tasks/${created.id}`, {
-        method: 'PATCH',
-        body: { status, position },
-      })
-    }
     invalidate()
   } catch {
     error('Could not add task')
+  }
+}
+
+// ── Workflow state (column) editor ────────────────────────────────────────────
+function invalidateStates() {
+  queryClient.invalidateQueries({ queryKey: ['states', projectId.value] })
+}
+const showStateForm = ref(false)
+const editingState = ref<WorkflowState | null>(null)
+const stateForm = reactive({ name: '', category: 'todo' as TaskStatus, color: '#5e6ad2' })
+
+function openAddState() {
+  editingState.value = null
+  Object.assign(stateForm, { name: '', category: 'todo', color: '#5e6ad2' })
+  showStateForm.value = true
+}
+function openEditState(s: WorkflowState) {
+  editingState.value = s
+  Object.assign(stateForm, { name: s.name, category: s.category, color: s.color ?? '#5e6ad2' })
+  showStateForm.value = true
+}
+
+const saveState = useMutation({
+  mutationFn: () => {
+    const body = { name: stateForm.name.trim(), category: stateForm.category, color: stateForm.color }
+    return editingState.value
+      ? api<WorkflowState>(`/api/v1/projects/${projectId.value}/states/${editingState.value.id}`, { method: 'PATCH', body })
+      : api<WorkflowState>(`/api/v1/projects/${projectId.value}/states`, { method: 'POST', body })
+  },
+  onSuccess: () => { showStateForm.value = false; invalidateStates() },
+  onError: () => error('Could not save column'),
+})
+
+async function deleteState(s: WorkflowState) {
+  const ok = await confirm({
+    title: `Delete "${s.name}" column?`,
+    message: 'The column must be empty. Tasks in it must be moved first.',
+    confirmLabel: 'Delete column',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await api(`/api/v1/projects/${projectId.value}/states/${s.id}`, { method: 'DELETE' })
+    invalidateStates()
+    success('Column deleted')
+  } catch {
+    error("Couldn't delete — move this column's tasks first")
   }
 }
 
@@ -257,28 +310,41 @@ async function confirmDelete(t: Task) {
     </div>
 
     <!-- board view -->
-    <div v-else-if="view === 'board'" class="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div v-else-if="view === 'board'" class="flex gap-4 overflow-x-auto pb-2">
       <section
-        v-for="col in statusColumns"
-        :key="col.key"
-        class="flex flex-col rounded-card border border-line bg-surface-2/40 p-3"
+        v-for="s in states ?? []"
+        :key="s.id"
+        class="group flex w-80 shrink-0 flex-col rounded-card border border-line bg-surface-2/40 p-3"
       >
         <!-- Column Header -->
         <div class="mb-3 flex items-center gap-2 px-1.5 py-1 select-none">
-          <span :class="['size-2 rounded-full', col.dot]" />
-          <span class="text-sm font-semibold text-ink">{{ col.label }}</span>
-          <span class="text-xs text-ink-subtle font-normal tabular">({{ columns[col.key].length }})</span>
+          <span class="size-2 rounded-full" :class="s.color ? '' : categoryDot[s.category]" :style="dotStyle(s)" />
+          <span class="text-sm font-semibold text-ink">{{ s.name }}</span>
+          <span class="text-xs text-ink-subtle font-normal tabular">({{ columns[s.id]?.length ?? 0 }})</span>
+          <UiMenu align="right" class="ml-auto">
+            <template #trigger>
+              <button
+                type="button"
+                class="grid size-6 place-items-center rounded text-ink-subtle opacity-0 transition hover:bg-surface-2 hover:text-ink-muted focus-within:opacity-100 group-hover:opacity-100"
+                aria-label="Column actions"
+              >
+                <UiIcon name="more" :size="14" />
+              </button>
+            </template>
+            <UiMenuItem icon="edit" @click="openEditState(s)">Rename / recolor</UiMenuItem>
+            <UiMenuItem icon="trash" danger @click="deleteState(s)">Delete column</UiMenuItem>
+          </UiMenu>
         </div>
 
         <draggable
-          :list="columns[col.key]"
+          :list="columns[s.id]"
           item-key="id"
           group="tasks"
           class="flex min-h-[160px] flex-1 flex-col gap-2"
           ghost-class="opacity-40"
           drag-class="rotate-2"
           animation="180"
-          @change="onColumnChange(col.key, $event)"
+          @change="onColumnChange(s.id, $event)"
         >
           <template #item="{ element }">
             <TaskCard
@@ -293,43 +359,52 @@ async function confirmDelete(t: Task) {
 
         <!-- Empty State Column Placeholder -->
         <div
-          v-if="!columns[col.key].length"
-          class="flex flex-col items-center justify-center border border-dashed border-line rounded-lg py-8 px-4 text-center select-none bg-surface/20 my-2"
+          v-if="!(columns[s.id]?.length)"
+          class="my-2 flex flex-col items-center justify-center rounded-lg border border-dashed border-line bg-surface/20 px-4 py-8 text-center select-none"
         >
-          <UiIcon name="inbox" :size="14" class="text-ink-subtle mb-1" />
+          <UiIcon name="inbox" :size="14" class="mb-1 text-ink-subtle" />
           <p class="text-xs font-semibold text-ink-muted">No tasks yet</p>
-          <p class="text-[10px] text-ink-subtle mt-0.5">Drag tasks here or add below</p>
+          <p class="mt-0.5 text-[10px] text-ink-subtle">Drag tasks here or add below</p>
         </div>
 
         <!-- inline quick-add -->
         <div class="mt-2">
           <input
-            v-model="drafts[col.key]"
+            v-model="drafts[s.id]"
             type="text"
-            :aria-label="`Add a task to ${col.label}`"
-            :placeholder="adding === col.key ? 'Task title, then Enter…' : '+ Add task'"
+            :aria-label="`Add a task to ${s.name}`"
+            :placeholder="adding === s.id ? 'Task title, then Enter…' : '+ Add task'"
             class="w-full rounded-lg border border-transparent bg-transparent px-2.5 py-2 text-sm text-ink outline-none transition placeholder:text-ink-subtle focus:border-line focus:bg-surface focus:shadow-sm"
-            @focus="adding = col.key"
+            @focus="adding = s.id"
             @blur="adding = null"
-            @keydown.enter.prevent="quickAdd(col.key)"
+            @keydown.enter.prevent="quickAdd(s.id)"
           >
         </div>
       </section>
+
+      <!-- Add column -->
+      <button
+        type="button"
+        class="flex h-11 w-72 shrink-0 items-center justify-center gap-1.5 rounded-card border border-dashed border-line text-sm text-ink-muted transition hover:border-line-strong hover:bg-surface-2 hover:text-ink"
+        @click="openAddState"
+      >
+        <UiIcon name="plus" :size="14" /> Add column
+      </button>
     </div>
 
     <!-- list view -->
     <div v-else class="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-      <template v-for="col in statusColumns" :key="col.key">
+      <template v-for="s in states ?? []" :key="s.id">
         <div
-          v-if="columns[col.key].length"
-          :class="['flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-ink-muted', col.bar]"
+          v-if="columns[s.id]?.length"
+          class="flex items-center gap-2 bg-surface-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-ink-muted"
         >
-          <span :class="['size-2 rounded-full', col.dot]" />
-          {{ col.label }}
-          <span class="text-ink-subtle">· {{ columns[col.key].length }}</span>
+          <span class="size-2 rounded-full" :class="s.color ? '' : categoryDot[s.category]" :style="dotStyle(s)" />
+          {{ s.name }}
+          <span class="text-ink-subtle">· {{ columns[s.id]?.length ?? 0 }}</span>
         </div>
         <button
-          v-for="task in columns[col.key]"
+          v-for="task in columns[s.id]"
           :key="task.id"
           type="button"
           class="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition last:border-b-0 hover:bg-surface-2"
@@ -391,5 +466,39 @@ async function confirmDelete(t: Task) {
         @deleted="onTaskDeleted"
       />
     </UiDrawer>
+
+    <!-- Workflow state (column) editor -->
+    <UiModal
+      :open="showStateForm"
+      :title="editingState ? 'Edit column' : 'New column'"
+      width="max-w-sm"
+      @close="showStateForm = false"
+    >
+      <form class="flex flex-col gap-4" @submit.prevent="saveState.mutate()">
+        <label class="flex flex-col gap-1.5">
+          <span class="field-label">Name</span>
+          <input v-model="stateForm.name" type="text" required maxlength="50" placeholder="e.g. In Review" class="field-input">
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="field-label">Category</span>
+          <select v-model="stateForm.category" class="field-input">
+            <option value="todo">Unstarted (todo)</option>
+            <option value="in_progress">Started (in progress)</option>
+            <option value="done">Completed (done)</option>
+          </select>
+          <span class="text-helper">Drives progress/“done” reporting.</span>
+        </label>
+        <label class="flex items-center gap-2.5">
+          <input v-model="stateForm.color" type="color" class="size-8 cursor-pointer rounded-control border border-line bg-surface">
+          <span class="field-label">Column colour</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-1">
+          <UiButton variant="ghost" type="button" @click="showStateForm = false">Cancel</UiButton>
+          <UiButton variant="primary" type="submit" :loading="saveState.isPending.value" :disabled="!stateForm.name.trim()">
+            {{ editingState ? 'Save column' : 'Add column' }}
+          </UiButton>
+        </div>
+      </form>
+    </UiModal>
   </div>
 </template>

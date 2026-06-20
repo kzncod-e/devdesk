@@ -30,7 +30,9 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     # Denormalized from the parent project for cheap workspace-scoped queries.
     workspace_id: Mapped[int | None] = mapped_column(
         ForeignKey("workspaces.id"), index=True, nullable=True

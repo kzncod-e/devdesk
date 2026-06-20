@@ -55,6 +55,15 @@ export interface Project {
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high'
 
+export interface WorkflowState {
+  id: number
+  project_id: number
+  name: string
+  category: TaskStatus
+  position: number
+  color: string | null
+}
+
 export interface UserBrief {
   id: number
   name: string
@@ -78,6 +87,7 @@ export interface Task {
   workspace_id: number
   number: number | null
   parent_task_id: number | null
+  state_id: number | null
   title: string
   description: string
   status: TaskStatus

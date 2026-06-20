@@ -28,6 +28,20 @@ async def test_project_crud_flow(client):
 
 
 @pytest.mark.asyncio
+async def test_delete_project_with_tasks_cascades(client):
+    # A project that owns tasks (+ seeded states) must still delete cleanly.
+    headers = await register_and_login(client)
+    pid = (await client.post("/api/v1/projects", headers=headers,
+                             json={"name": "Has Tasks"})).json()["id"]
+    await client.post(f"/api/v1/projects/{pid}/tasks", headers=headers, json={"title": "t1"})
+    await client.post(f"/api/v1/projects/{pid}/tasks", headers=headers, json={"title": "t2"})
+
+    r = await client.delete(f"/api/v1/projects/{pid}", headers=headers)
+    assert r.status_code == 204
+    assert (await client.get(f"/api/v1/projects/{pid}", headers=headers)).status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_projects_are_owner_isolated(client):
     alice = await register_and_login(client, email="alice@test.dev")
     bob = await register_and_login(client, email="bob@test.dev")

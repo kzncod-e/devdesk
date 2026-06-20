@@ -26,8 +26,8 @@
 | Collections, tag registry, saved filters | ✅ shipped (2.7) |
 | Comments + @mentions | ✅ shipped (3.1) |
 | Task side-panel (drawer + Comments/Activity tabs) | ✅ shipped (3.2) |
-| Per-project task numbering (KEY-N) + sub-tasks | ✅ shipped (3.3 part 1) |
-| Custom workflow states, teams, version history, webhooks, sharing | ❌ not started (Phase 3) |
+| Task numbering (KEY-N) + sub-tasks + custom workflow states | ✅ shipped (3.3) |
+| Teams, version history, webhooks, per-resource sharing | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
 
 ---
@@ -233,7 +233,7 @@ Goal: turn shared workspaces into real collaboration. Depends on Phase 2's outbo
 - **Tests:** ✅ `tests/api/test_task_activity_api.py` (shape + auth).
 - **Deferred:** snippet side-panel (tasks only so far); per-task activity is read-only.
 
-### 3.3 Custom workflow states + sub-tasks  ·  **M–L**  ·  ◑ part 1 shipped
+### 3.3 Custom workflow states + sub-tasks  ·  **M–L**  ·  ✅ shipped
 - **Why:** hardcoded `todo|in_progress|done` doesn't survive real teams.
 - **Part 1 — task numbering + sub-tasks (✅ shipped):**
   - **DB:** ✅ `projects.key`, `tasks.number` (per-project sequence), `tasks.parent_task_id`
@@ -245,10 +245,20 @@ Goal: turn shared workspaces into real collaboration. Depends on Phase 2's outbo
   - **UI:** ✅ real `KEY-N` identifiers everywhere (`utils/taskRef`), replacing the faked
     `TASK-{id}`; `TaskSubtasks.vue` in the detail panel (add / complete / open, own numbers).
   - **Tests:** ✅ `tests/api/test_task_numbering_api.py`.
-- **Part 2 — custom workflow states (❌ deferred, the risky piece):** `workflow_states(
-  project_id, name, category, position)`; `tasks.status` → FK to a state; state CRUD; board
-  columns driven by states + a state editor. Schema-invasive (status→FK migration + board
-  refactor) — warrants its own focused, verified pass.
+- **Part 2 — custom workflow states (✅ shipped):**
+  - **DB:** ✅ `workflow_states(project_id, name, category, position, color)` +
+    `tasks.state_id` FK (migration `e8f9a0b1c2d3`, seeds 3 defaults per project + backfills
+    `state_id` from `status`). `state_id` is the source of truth; `status` is kept as a
+    denormalized projection of the state's `category` so summary/search are unchanged.
+  - **Backend:** ✅ states CRUD (`/projects/{id}/states[/{state_id}]`), seeded on project
+    create; task create/patch resolve `state_id ⇄ status` (category); delete guarded
+    (non-empty → 409, last column → 422). `TaskOut.state_id`, `WorkflowStateOut`.
+  - **UI:** ✅ board columns are dynamic per project (horizontal scroll), drag + quick-add
+    by `state_id`; per-column `⋯` menu (rename/recolor/delete) + "Add column" modal;
+    `TaskDetail` status → state selector.
+  - **Tests:** ✅ `tests/api/test_workflow_states_api.py`; unit `FakeTaskRepo` updated.
+  - **Deferred:** column drag-reorder (position editable via API, no DnD handle yet);
+    categories limited to todo|in_progress|done (keeps `status`/summary valid).
 
 ### 3.4 Teams (sub-groups within a workspace)  ·  **M**
 - **DB:** `teams(workspace_id, name, key)`, `team_members(team_id, user_id, role)`;

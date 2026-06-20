@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
-import type { Project, Task, TaskPriority, TaskStatus, UserBrief } from '~/types/api'
+import type { Project, Task, TaskPriority, UserBrief, WorkflowState } from '~/types/api'
 
 const props = withDefaults(
   defineProps<{ taskId: number; compact?: boolean }>(),
@@ -39,6 +39,19 @@ const { data: users } = useQuery({
   queryKey: ['users'],
   queryFn: () => api<UserBrief[]>('/api/v1/users'),
 })
+
+// Board columns (workflow states) for the state selector.
+const { data: states } = useQuery({
+  queryKey: computed(() => ['states', task.value?.project_id]),
+  queryFn: () => api<WorkflowState[]>(`/api/v1/projects/${task.value!.project_id}/states`),
+  enabled: computed(() => enabled.value && task.value != null && task.value.id === props.taskId),
+})
+const currentState = computed(() =>
+  (states.value ?? []).find(s => s.id === task.value?.state_id) ?? null,
+)
+const categoryDot: Record<string, string> = {
+  todo: 'bg-zinc-500', in_progress: 'bg-amber-500', done: 'bg-emerald-500',
+}
 
 // ── Inline edit state ─────────────────────────────────────────────────────────
 const titleInput = ref('')
@@ -89,8 +102,8 @@ function saveTitle() {
 function saveDescription() {
   if (descriptionInput.value !== task.value?.description) patchTask.mutate({ description: descriptionInput.value })
 }
-function selectStatus(status: TaskStatus) {
-  if (status !== task.value?.status) patchTask.mutate({ status })
+function selectState(stateId: number) {
+  if (stateId !== task.value?.state_id) patchTask.mutate({ state_id: stateId })
 }
 function selectPriority(priority: TaskPriority) {
   if (priority !== task.value?.priority) patchTask.mutate({ priority })
@@ -124,11 +137,6 @@ function openFull() {
 }
 
 // ── Presentation ──────────────────────────────────────────────────────────────
-const statusOptions: { key: TaskStatus; label: string; dot: string }[] = [
-  { key: 'todo', label: 'To do', dot: 'bg-zinc-500' },
-  { key: 'in_progress', label: 'In progress', dot: 'bg-amber-500' },
-  { key: 'done', label: 'Done', dot: 'bg-emerald-500' },
-]
 const priorityOptions: { key: TaskPriority; label: string; text: string }[] = [
   { key: 'low', label: 'Low', text: 'text-ink-subtle' },
   { key: 'medium', label: 'Medium', text: 'text-warning' },
@@ -239,19 +247,22 @@ const activeTab = ref<'comments' | 'activity'>('comments')
               </span>
               <span v-else class="text-ink-subtle">—</span>
             </div>
-            <!-- Status -->
+            <!-- Status (workflow state) -->
             <div class="flex items-center justify-between py-2.5">
               <span class="field-label text-xs uppercase tracking-wider">Status</span>
               <UiMenu align="right">
                 <template #trigger>
                   <button type="button" class="flex items-center gap-1.5 rounded-control border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink transition hover:border-line-strong hover:bg-surface-2">
-                    <span class="size-1.5 rounded-full" :class="statusOptions.find(o => o.key === task?.status)?.dot ?? 'bg-zinc-500'" />
-                    {{ statusOptions.find(o => o.key === task?.status)?.label ?? 'To do' }}
+                    <span class="size-1.5 rounded-full" :class="currentState?.color ? '' : categoryDot[currentState?.category ?? 'todo']" :style="currentState?.color ? { backgroundColor: currentState.color } : undefined" />
+                    {{ currentState?.name ?? 'To do' }}
                     <UiIcon name="chevronDown" :size="10" class="text-ink-subtle" />
                   </button>
                 </template>
-                <UiMenuItem v-for="opt in statusOptions" :key="opt.key" @click="selectStatus(opt.key)">
-                  <span class="flex items-center gap-2"><span class="size-2 rounded-full" :class="opt.dot" />{{ opt.label }}</span>
+                <UiMenuItem v-for="s in states ?? []" :key="s.id" @click="selectState(s.id)">
+                  <span class="flex items-center gap-2">
+                    <span class="size-2 rounded-full" :class="s.color ? '' : categoryDot[s.category]" :style="s.color ? { backgroundColor: s.color } : undefined" />
+                    {{ s.name }}
+                  </span>
                 </UiMenuItem>
               </UiMenu>
             </div>
