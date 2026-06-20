@@ -33,7 +33,11 @@ class ProjectService:
         return project
 
     async def list(self, workspace_id: int, *, limit: int = 50, offset: int = 0):
-        return await self.repo.list_for_workspace(workspace_id, limit=limit, offset=offset)
+        projects = await self.repo.list_for_workspace(workspace_id, limit=limit, offset=offset)
+        counts = await self.repo.task_counts_for_workspace(workspace_id)
+        for p in projects:
+            p.task_count = counts.get(p.id, 0)
+        return projects
 
     async def get(self, project_id: int, workspace_id: int):
         project = await self.repo.get_for_workspace(project_id, workspace_id)

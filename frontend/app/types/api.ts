@@ -50,6 +50,8 @@ export interface Project {
   status: ProjectStatus
   color: string
   image_url: string | null
+  updated_at: string | null
+  task_count: number | null
 }
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done'

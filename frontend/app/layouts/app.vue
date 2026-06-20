@@ -124,13 +124,81 @@ const initials = computed(() =>
     .join("")
     .toUpperCase(),
 );
+
+// ── Sidebar resize ──────────────────────────────────────────────
+const SIDEBAR_DEFAULT = 240;
+const SIDEBAR_MIN = 160;
+const SIDEBAR_MAX = 480;
+const COLLAPSE_THRESHOLD = 100;
+
+const sidebarWidth = ref(SIDEBAR_DEFAULT);
+const sidebarCollapsed = ref(false);
+const isResizing = ref(false);
+
+function startResize(e: MouseEvent) {
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = sidebarWidth.value;
+
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+
+  function onMove(e: MouseEvent) {
+    const newWidth = startWidth + (e.clientX - startX);
+    if (newWidth < COLLAPSE_THRESHOLD) {
+      sidebarCollapsed.value = true;
+    } else {
+      sidebarCollapsed.value = false;
+      sidebarWidth.value = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, newWidth));
+    }
+  }
+
+  function onUp() {
+    isResizing.value = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  }
+
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+}
+
+function expandSidebar() {
+  sidebarCollapsed.value = false;
+  sidebarWidth.value = SIDEBAR_DEFAULT;
+}
+
+onUnmounted(() => {
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+});
 </script>
 
 <template>
   <div class="flex h-screen overflow-hidden bg-canvas text-ink">
-    <!-- Sidebar -->
+    <!-- Sidebar wrapper: resizable, collapsible (desktop only) -->
+    <div
+      class="relative hidden shrink-0 overflow-hidden md:block"
+      :style="{
+        width: sidebarCollapsed ? '0px' : sidebarWidth + 'px',
+        transition: isResizing ? 'none' : 'width 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        willChange: 'width',
+      }"
+    >
+      <!-- Resize handle -->
+      <div
+        class="absolute inset-y-0 right-0 z-20 w-1 cursor-col-resize transition-colors hover:bg-accent/30 active:bg-accent/50"
+        @mousedown.prevent="startResize"
+      />
     <aside
-      class="hidden w-60 shrink-0 flex-col border-r border-line bg-surface/60 px-3 py-4 md:flex"
+      class="absolute inset-y-0 left-0 flex flex-col border-r border-line bg-surface/60 px-3 py-4"
+      :style="{
+        width: sidebarWidth + 'px',
+        opacity: sidebarCollapsed ? 0 : 1,
+        transition: isResizing ? 'none' : 'opacity 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      }"
     >
       <UiMenu align="left" class="mb-5 block">
         <template #trigger>
@@ -284,6 +352,26 @@ const initials = computed(() =>
         />
       </div>
     </aside>
+    </div>
+
+    <!-- Collapsed sidebar toggle tab (desktop only) -->
+    <Transition
+      enter-active-class="transition-opacity duration-200 ease-out"
+      leave-active-class="transition-opacity duration-150 ease-in"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <button
+        v-if="sidebarCollapsed"
+        class="group relative z-10 hidden shrink-0 cursor-pointer items-start border-r border-line bg-surface/60 pt-4 md:flex"
+        aria-label="Expand sidebar"
+        @click="expandSidebar"
+      >
+        <span class="flex h-6 w-5 items-center justify-center rounded-r-md border border-l-0 border-line bg-surface transition-colors group-hover:bg-surface-2">
+          <UiIcon name="chevronRight" :size="12" class="text-ink-subtle group-hover:text-ink-muted" />
+        </span>
+      </button>
+    </Transition>
 
     <!-- Main column -->
     <div class="flex min-w-0 flex-1 flex-col">
@@ -294,6 +382,23 @@ const initials = computed(() =>
         <NuxtLink to="/app" class="flex items-center md:hidden">
           <UiLogo :size="26" />
         </NuxtLink>
+
+        <!-- Sidebar toggle (desktop, collapsed state) -->
+        <Transition
+          enter-active-class="transition-opacity duration-200 ease-out"
+          leave-active-class="transition-opacity duration-100 ease-in"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
+        >
+          <button
+            v-if="sidebarCollapsed"
+            class="hidden items-center justify-center rounded-control p-1.5 text-ink-subtle transition hover:bg-surface-2 hover:text-ink md:flex"
+            aria-label="Expand sidebar"
+            @click="expandSidebar"
+          >
+            <UiIcon name="panelLeft" :size="16" />
+          </button>
+        </Transition>
 
         <button
           class="flex flex-1 items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink-subtle transition hover:border-line-strong md:max-w-md"

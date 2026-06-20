@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -27,3 +29,6 @@ class ProjectOut(BaseModel):
     status: str
     color: str
     image_url: str | None = None
+    updated_at: datetime | None = None
+    # Top-level task count; populated by the list endpoint (None elsewhere).
+    task_count: int | None = None

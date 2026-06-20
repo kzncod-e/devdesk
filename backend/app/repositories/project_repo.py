@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
+from app.models.task import Task
 from app.platform.search import rank, vector_match
 
 
@@ -41,6 +42,16 @@ class ProjectRepository:
         )
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
+
+    async def task_counts_for_workspace(self, workspace_id: int) -> dict[int, int]:
+        """Top-level task count per project (matches the board's column counts)."""
+        stmt = (
+            select(Task.project_id, func.count())
+            .where(Task.workspace_id == workspace_id, Task.parent_task_id.is_(None))
+            .group_by(Task.project_id)
+        )
+        res = await self.session.execute(stmt)
+        return {pid: int(n) for pid, n in res.all()}
 
     async def get_for_workspace(self, project_id: int, workspace_id: int) -> Project | None:
         stmt = select(Project).where(
