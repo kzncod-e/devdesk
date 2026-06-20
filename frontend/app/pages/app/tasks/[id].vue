@@ -258,9 +258,13 @@ const isSaving = computed(() => patchTask.isPending.value || updateAssignees.isP
           id="task-desc"
           v-model="descriptionInput"
           placeholder="Add description..."
-          class="min-h-[260px] w-full resize-none bg-transparent px-0 py-1 text-sm leading-relaxed text-ink placeholder:text-ink-subtle outline-none border-0 focus:ring-0"
+          class="min-h-[160px] w-full resize-none bg-transparent px-0 py-1 text-sm leading-relaxed text-ink placeholder:text-ink-subtle outline-none border-0 focus:ring-0"
           @blur="saveDescription"
         />
+
+        <div class="mt-2 border-t border-line pt-5">
+          <TaskComments :task-id="taskId" :users="users ?? []" />
+        </div>
       </section>
 
       <!-- Right side (Sidebar Properties) -->

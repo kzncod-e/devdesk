@@ -9,6 +9,7 @@ from app.core.context import current_actor_id
 from app.core.errors import ForbiddenError
 from app.db.postgres import SessionLocal, get_session
 from app.repositories.bookmark_repo import BookmarkRepository
+from app.repositories.comment_repo import CommentRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.snippet_repo import SnippetRepository
 from app.repositories.collection_repo import CollectionRepository
@@ -24,6 +25,7 @@ from app.repositories.workspace_repo import (
 )
 from app.services.auth_service import AuthService
 from app.services.bookmark_service import BookmarkService, FetchHtml, default_fetch_html
+from app.services.comment_service import CommentService
 from app.services.project_service import ProjectService
 from app.services.search_service import SearchService
 from app.services.snippet_service import SnippetService
@@ -77,6 +79,15 @@ def get_project_service(session: Session) -> ProjectService:
 def get_task_service(session: Session) -> TaskService:
     return TaskService(
         session, TaskRepository(session), ProjectRepository(session), UserRepository(session)
+    )
+
+
+def get_comment_service(session: Session) -> CommentService:
+    return CommentService(
+        session,
+        CommentRepository(session),
+        TaskRepository(session),
+        MembershipRepository(session),
     )
 
 

@@ -60,6 +60,17 @@ export interface UserBrief {
   avatar_url: string | null
 }
 
+export interface Comment {
+  id: number
+  entity_type: string
+  entity_id: number
+  author: UserBrief | null
+  body: string
+  parent_id: number | null
+  created_at: string
+  edited_at: string | null
+}
+
 export interface Task {
   id: number
   project_id: number

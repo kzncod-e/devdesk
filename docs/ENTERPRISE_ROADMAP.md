@@ -18,13 +18,14 @@
 | `X-Workspace-Id` scoping + default fallback | ✅ shipped |
 | Frontend workspace switcher + members/invite UI | ✅ shipped |
 | Projects / tasks / snippets / bookmarks scoped to workspace | ✅ shipped |
-| Snippets & bookmarks still in MongoDB | ⚠️ pending consolidation (Phase 2) |
-| Migrations via inline `ALTER TABLE` (no Alembic) | ⚠️ pending (Phase 2) |
+| Snippets & bookmarks consolidated into Postgres | ✅ shipped (2.1) |
+| Alembic migrations (outbox + worker backbone) | ✅ shipped (2.0, 2.2) |
 | Activity feed, audit log, notifications | ✅ shipped (2.3, 2.4) |
 | Global search (Postgres FTS) + ⌘K actions | ✅ shipped (2.5) |
 | Templates + public gallery | ✅ shipped (2.6) |
 | Collections, tag registry, saved filters | ✅ shipped (2.7) |
-| Comments / @mentions, task side-panel, workflows | ❌ not started (Phase 3) |
+| Comments + @mentions | ✅ shipped (3.1) |
+| Task side-panel, workflows, teams, webhooks, sharing | ❌ not started (Phase 3) |
 | SSO/SCIM, billing, public API, audit export | ❌ not started (Phase 4) |
 
 ---
@@ -197,12 +198,26 @@ event backbone** — so build those first.
 Goal: turn shared workspaces into real collaboration. Depends on Phase 2's outbox
 (for mentions → notifications) and single DB.
 
-### 3.1 Comments + @mentions  ·  **M**
-- **DB:** `comments(workspace_id, entity_type, entity_id, author_id, body, parent_id,
-  created_at, edited_at, deleted_at)`.
-- **Backend:** mention parser emits `notification` + `activity`; threads via `parent_id`.
-- **API:** `GET/POST /{entity}/{id}/comments`, `PATCH/DELETE /comments/{id}`.
-- **UI:** comments tab in the entity side-panel; mention autocomplete.
+### 3.1 Comments + @mentions  ·  **M**  ·  ✅ shipped
+- **DB:** ✅ `comments(workspace_id, entity_type, entity_id, author_id, body, parent_id,
+  created_at, edited_at, deleted_at)` (migration `c6d7e8f9a0b1`); soft-delete; eager
+  `author` relationship for the response.
+- **Backend:** ✅ `comment_service` pins every comment to an entity in the caller's
+  workspace; `@mention` ids (from the composer) are validated against active members;
+  `emit("comment.created")` → outbox handler writes an activity ("commented") + audit
+  row and notifies @mentioned users (email) + the task's assignees (quiet). Threads via
+  `parent_id`.
+- **API:** ✅ `GET /comments?entity_type=&entity_id=`, `POST /comments`,
+  `PATCH /comments/{id}` (author-only), `DELETE /comments/{id}` (author or
+  `CONTENT_DELETE`). Header-scoped via `require(CONTENT_READ|COMMENT_WRITE)`.
+- **UI:** ✅ `TaskComments` on the task detail page — list, composer with `@`-mention
+  autocomplete, highlighted mention chips, inline edit, delete.
+- **Tests:** ✅ `tests/api/test_comments_api.py` (CRUD + threading, workspace isolation,
+  invalid-mention drop, auth/validation).
+- **Deferred:** entity side-panel (3.2) still surfaces comments via the page, not a
+  drawer; mention parsing is composer-driven (explicit ids), not free-text NLP;
+  `comment_count` not yet denormalised onto `TaskOut` for card chips; comments only on
+  tasks so far (schema is generic).
 
 ### 3.2 Entity side-panel (Linear-style)  ·  **M**
 - **Why:** detail-on-the-side beats modal hops; the `UiDrawer` already exists, unused.

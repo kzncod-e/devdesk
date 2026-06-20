@@ -21,6 +21,7 @@ from app.platform.handlers import dispatch
 from app.platform.jobs.email import send_daily_digest, send_notification_email
 import app.platform.handlers.activity  # noqa: F401  — registers all handlers
 import app.platform.handlers.notifications  # noqa: F401  — registers notification handlers
+import app.platform.handlers.comments  # noqa: F401  — registers comment handlers
 
 logger = logging.getLogger(__name__)
 
